@@ -1,0 +1,392 @@
+[
+  {
+    "id": "example_apples",
+    "text": "Lisa hat 5 Äpfel. Sie gibt 2 Äpfel an ihren Freund Tom. Wie viele Äpfel hat Lisa jetzt noch?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "leicht",
+      "zahlenraum": "1-10",
+      "operations": ["subtraction"],
+      "tags": ["Obst", "Teilen"],
+      "reason": "Einfache Subtraktionsaufgabe im Zahlenraum bis 10"
+    },
+    "title": "Lisas Äpfel"
+  },
+  {
+    "id": "example_marbles",
+    "text": "Tim hat 8 Murmeln. Er bekommt von seiner Oma noch 6 Murmeln dazu. Wie viele Murmeln hat Tim jetzt?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "leicht",
+      "zahlenraum": "1-20",
+      "operations": ["addition"],
+      "tags": ["Spielzeug", "Geschenk"],
+      "reason": "Einfache Additionsaufgabe im Zahlenraum bis 20"
+    },
+    "title": "Tims Murmeln"
+  },
+  {
+    "id": "example_stickers",
+    "text": "Anna sammelt Sticker. Sie hat schon 12 Sticker. Ihre Freundin schenkt ihr 9 Sticker. Wie viele Sticker hat Anna nun insgesamt?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "leicht",
+      "zahlenraum": "1-100",
+      "operations": ["addition"],
+      "tags": ["Sammeln", "Freundschaft"],
+      "reason": "Addition mit Zehnerüberschreitung"
+    },
+    "title": "Annas Sticker"
+  },
+  {
+    "id": "example_bakery",
+    "text": "In der Bäckerei kosten Brötchen 40 Cent und Croissants 1 Euro 20 Cent. Mama kauft 3 Brötchen und 2 Croissants. Wie viel muss sie bezahlen?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "mittel",
+      "zahlenraum": "1-1000",
+      "operations": ["multiplication", "addition"],
+      "tags": ["Einkaufen", "Geld"],
+      "reason": "Mehrschrittige Aufgabe mit Multiplikation und Addition"
+    },
+    "title": "Einkauf in der Bäckerei"
+  },
+  {
+    "id": "example_party",
+    "text": "Für den Kindergeburtstag werden 24 Muffins gebacken. Es kommen 8 Kinder zur Party. Wie viele Muffins bekommt jedes Kind, wenn alle gleich viel bekommen sollen?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "mittel",
+      "zahlenraum": "1-100",
+      "operations": ["division"],
+      "tags": ["Geburtstag", "Teilen"],
+      "reason": "Divisionsaufgabe mit gerechtem Aufteilen"
+    },
+    "title": "Muffins für die Party"
+  },
+  {
+    "id": "example_books",
+    "text": "Die Schulbibliothek hat 156 Bücher. Davon werden 28 Bücher ausgeliehen. Dann kommen 15 neue Bücher dazu. Wie viele Bücher sind jetzt in der Bibliothek?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "mittel",
+      "zahlenraum": "1-1000",
+      "operations": ["subtraction", "addition"],
+      "tags": ["Schule", "Bücher"],
+      "reason": "Mehrschrittige Aufgabe mit Subtraktion und Addition"
+    },
+    "title": "Bücher in der Bibliothek"
+  },
+  {
+    "id": "example_soccer",
+    "text": "Der Fußballverein hat 96 Spieler in 8 Mannschaften. In jeder Mannschaft sind gleich viele Spieler. Wie viele Spieler sind in einer Mannschaft?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "mittel",
+      "zahlenraum": "1-100",
+      "operations": ["division"],
+      "tags": ["Sport", "Verein"],
+      "reason": "Division zum gleichmäßigen Aufteilen"
+    },
+    "title": "Spieler im Fußballverein"
+  },
+  {
+    "id": "example_train",
+    "text": "Ein Zug fährt mit 120 km/h. Wie weit kommt er in 3 Stunden?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "schwer",
+      "zahlenraum": "gross",
+      "operations": ["multiplication"],
+      "tags": ["Verkehr", "Geschwindigkeit"],
+      "reason": "Multiplikation mit größeren Zahlen, Sachkontext Geschwindigkeit"
+    },
+    "title": "Zugfahrt"
+  },
+  {
+    "id": "example_garden",
+    "text": "Im Garten werden Blumen gepflanzt. In jeder Reihe stehen 7 Blumen. Es gibt 5 Reihen. Wie viele Blumen sind insgesamt im Garten?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "leicht",
+      "zahlenraum": "1-100",
+      "operations": ["multiplication"],
+      "tags": ["Natur", "Garten"],
+      "reason": "Einführung in die Multiplikation als wiederholte Addition"
+    },
+    "title": "Blumen im Garten"
+  },
+  {
+    "id": "example_cinema",
+    "text": "Eine Kinokarte kostet 8 Euro für Kinder und 12 Euro für Erwachsene. Familie Müller geht ins Kino: 2 Erwachsene und 3 Kinder. Wie viel kostet der Kinobesuch insgesamt?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "schwer",
+      "zahlenraum": "1-100",
+      "operations": ["multiplication", "addition"],
+      "tags": ["Freizeit", "Geld", "Familie"],
+      "reason": "Mehrschrittige Aufgabe mit verschiedenen Preisen"
+    },
+    "title": "Familienausflug ins Kino"
+  },
+  {
+    "id": "example_pikas_bauernhof",
+    "text": "Ich habe Kühe, Schweine und Hunde auf meinem Hof. Ohne die Hunde sind es 27 Tiere. Ohne die Schweine sind es 15 Tiere. Ohne die Kühe sind es 20 Tiere. Wie viele Tiere leben auf dem Hof?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "schwer",
+      "zahlenraum": "1-100",
+      "operations": ["addition", "subtraction"],
+      "tags": ["Bauernhof", "Tiere", "Knobeln"],
+      "reason": "PIKAS-Aufgabe: Erfordert systematisches Denken und Rückwärtsrechnen"
+    },
+    "title": "Tiere auf dem Bauernhof"
+  },
+  {
+    "id": "example_hausnummern",
+    "text": "Tim steht bei Hausnummer 15 und sucht Hausnummer 155. Die Hausnummern auf seiner Straßenseite gehen immer um 2 weiter. An wie vielen Häusern muss Tim vorbeigehen?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "mittel",
+      "zahlenraum": "1-1000",
+      "operations": ["subtraction", "division"],
+      "tags": ["Alltag", "Zahlenfolgen"],
+      "reason": "Modellierungsaufgabe: Erfordert Verständnis von geraden/ungeraden Hausnummern"
+    },
+    "title": "Hausnummern suchen"
+  },
+  {
+    "id": "example_pizza_party",
+    "text": "Für die Klassenfeier soll Pizza bestellt werden. In der Klasse sind 24 Kinder. Eine Pizza hat 8 Stücke und jedes Kind möchte 2 Stücke essen. Wie viele Pizzen müssen bestellt werden?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "mittel",
+      "zahlenraum": "1-100",
+      "operations": ["multiplication", "division"],
+      "tags": ["Schule", "Essen", "Planen"],
+      "reason": "Modellierungsaufgabe: Alltagsnahes Planungsproblem mit mehreren Schritten"
+    },
+    "title": "Pizza für die Klassenfeier"
+  },
+  {
+    "id": "example_schwimmbad",
+    "text": "Der Eintritt ins Schwimmbad kostet für Kinder 3 Euro und für Erwachsene 5 Euro. Eine Familie mit 2 Erwachsenen und 3 Kindern geht schwimmen. Sie bezahlen mit einem 20-Euro-Schein. Wie viel Wechselgeld bekommen sie zurück?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "mittel",
+      "zahlenraum": "1-100",
+      "operations": ["multiplication", "addition", "subtraction"],
+      "tags": ["Freizeit", "Geld", "Familie"],
+      "reason": "Dreischrittige Aufgabe: Berechnen, Addieren, Subtrahieren"
+    },
+    "title": "Familienausflug ins Schwimmbad"
+  },
+  {
+    "id": "example_schnecke",
+    "text": "Eine Schnecke kriecht einen 10 Meter hohen Baum hinauf. Am Tag schafft sie 3 Meter, aber in der Nacht rutscht sie 2 Meter zurück. Nach wie vielen Tagen ist die Schnecke oben?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "schwer",
+      "zahlenraum": "1-20",
+      "operations": ["addition", "subtraction"],
+      "tags": ["Tiere", "Knobeln"],
+      "reason": "PIKAS-Aufgabe: Klassische Knobelaufgabe, erfordert genaues Nachdenken"
+    },
+    "title": "Die Schnecke am Baum"
+  },
+  {
+    "id": "example_fermi_steps",
+    "text": "Wie viele Schritte brauchst du ungefähr, um einmal um den Pausenhof zu gehen?",
+    "classification": {
+      "type": "fermi",
+      "difficulty": "leicht",
+      "zahlenraum": "1-1000",
+      "operations": [],
+      "tags": ["Schule", "Schätzen"],
+      "reason": "Fermi-Aufgabe (PIKAS): Erfordert Schätzung der Schulhofgröße und Schrittlänge"
+    },
+    "title": "Schritte um den Pausenhof"
+  },
+  {
+    "id": "example_fermi_books",
+    "text": "Wie viele Bücher stehen ungefähr in deiner Schulbibliothek?",
+    "classification": {
+      "type": "fermi",
+      "difficulty": "mittel",
+      "zahlenraum": "gross",
+      "operations": [],
+      "tags": ["Schule", "Schätzen"],
+      "reason": "Fermi-Aufgabe: Erfordert Schätzung basierend auf Regalanzahl und Büchern pro Regal"
+    },
+    "title": "Bücher in der Schulbibliothek"
+  },
+  {
+    "id": "example_fermi_water",
+    "text": "Wie viele Liter Wasser verbraucht deine Familie etwa in einer Woche?",
+    "classification": {
+      "type": "fermi",
+      "difficulty": "schwer",
+      "zahlenraum": "gross",
+      "operations": ["multiplication", "addition"],
+      "tags": ["Alltag", "Schätzen", "Umwelt"],
+      "reason": "Fermi-Aufgabe: Erfordert Annahmen über Wasserverbrauch pro Person und Tag"
+    },
+    "title": "Wasserverbrauch der Familie"
+  },
+  {
+    "id": "example_fermi_stau",
+    "text": "Wie viele Autos stehen ungefähr in einem 3 Kilometer langen Stau?",
+    "classification": {
+      "type": "fermi",
+      "difficulty": "mittel",
+      "zahlenraum": "gross",
+      "operations": ["division", "multiplication"],
+      "tags": ["Verkehr", "Schätzen"],
+      "reason": "Fermi-Aufgabe (PIKAS): Erfordert Annahmen über Autolänge und Abstand"
+    },
+    "title": "Autos im Stau"
+  },
+  {
+    "id": "example_fermi_pausenbrote",
+    "text": "Wie viele Pausenbrote werden an einem Tag in deiner Schule gegessen?",
+    "classification": {
+      "type": "fermi",
+      "difficulty": "leicht",
+      "zahlenraum": "1-1000",
+      "operations": ["multiplication"],
+      "tags": ["Schule", "Schätzen", "Essen"],
+      "reason": "Fermi-Aufgabe (PIKAS): Schüleranzahl mal geschätzte Brote pro Kind"
+    },
+    "title": "Pausenbrote in der Schule"
+  },
+  {
+    "id": "example_fermi_streichhoelzer",
+    "text": "Wie viele Streichhölzer passen in eine Schuhschachtel?",
+    "classification": {
+      "type": "fermi",
+      "difficulty": "mittel",
+      "zahlenraum": "gross",
+      "operations": ["multiplication", "division"],
+      "tags": ["Alltag", "Schätzen"],
+      "reason": "Fermi-Aufgabe: Erfordert Volumenvergleich und systematisches Schätzen"
+    },
+    "title": "Streichhölzer in der Schuhschachtel"
+  },
+  {
+    "id": "example_fermi_tannennadeln",
+    "text": "Wie viele Nadeln hat eine 1,80 Meter große Tanne ungefähr?",
+    "classification": {
+      "type": "fermi",
+      "difficulty": "schwer",
+      "zahlenraum": "gross",
+      "operations": ["multiplication"],
+      "tags": ["Natur", "Schätzen"],
+      "reason": "Fermi-Aufgabe: Erfordert Schätzung von Ästen und Nadeln pro Ast"
+    },
+    "title": "Nadeln einer Tanne"
+  },
+  {
+    "id": "example_captain_ship",
+    "text": "Auf einem Schiff sind 26 Schafe und 10 Ziegen. Wie alt ist der Kapitän?",
+    "classification": {
+      "type": "captain",
+      "difficulty": "leicht",
+      "zahlenraum": "1-100",
+      "operations": [],
+      "tags": ["Kritisches Denken"],
+      "reason": "Kapitänsaufgabe (KIRA): Klassiker - die Tierzahlen haben keinen Bezug zum Alter"
+    },
+    "title": "Alter des Kapitäns"
+  },
+  {
+    "id": "example_captain_bus",
+    "text": "In einem Bus sitzen 17 Mädchen und 15 Jungen. Wie heißt der Busfahrer?",
+    "classification": {
+      "type": "captain",
+      "difficulty": "leicht",
+      "zahlenraum": "1-100",
+      "operations": [],
+      "tags": ["Kritisches Denken"],
+      "reason": "Kapitänsaufgabe: Die Personenanzahl sagt nichts über den Namen des Busfahrers"
+    },
+    "title": "Name des Busfahrers"
+  },
+  {
+    "id": "example_captain_hund",
+    "text": "In einer Herde befinden sich 100 Schafe, die von einem Hund bewacht werden. Wie alt ist der Hund?",
+    "classification": {
+      "type": "captain",
+      "difficulty": "leicht",
+      "zahlenraum": "1-100",
+      "operations": [],
+      "tags": ["Kritisches Denken", "Tiere"],
+      "reason": "Kapitänsaufgabe: Die Schafanzahl hat keinen Zusammenhang mit dem Hundealter"
+    },
+    "title": "Alter des Hütehundes"
+  },
+  {
+    "id": "example_captain_kran",
+    "text": "Ein Kranführer hebt pro Tag 800 Kisten von einem Schiff in den Hafen. Wie viel verdient er?",
+    "classification": {
+      "type": "captain",
+      "difficulty": "mittel",
+      "zahlenraum": "1-1000",
+      "operations": [],
+      "tags": ["Kritisches Denken", "Beruf"],
+      "reason": "Kapitänsaufgabe: Die Kistenanzahl sagt nichts über das Gehalt aus"
+    },
+    "title": "Gehalt des Kranführers"
+  },
+  {
+    "id": "example_captain_obst",
+    "text": "20 Äpfel kosten 8 Euro. Wie viel kostet eine Birne?",
+    "classification": {
+      "type": "captain",
+      "difficulty": "leicht",
+      "zahlenraum": "1-100",
+      "operations": [],
+      "tags": ["Kritisches Denken", "Einkaufen"],
+      "reason": "Kapitänsaufgabe: Der Apfelpreis sagt nichts über den Birnenpreis"
+    },
+    "title": "Preis der Birne"
+  },
+  {
+    "id": "example_taschengeld",
+    "text": "Leon bekommt 5 Euro Taschengeld pro Woche. Er spart 4 Wochen lang sein ganzes Taschengeld. Dann kauft er sich ein Buch für 12 Euro. Wie viel Geld hat er noch übrig?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "mittel",
+      "zahlenraum": "1-100",
+      "operations": ["multiplication", "subtraction"],
+      "tags": ["Geld", "Sparen", "Alltag"],
+      "reason": "Zweischrittige Aufgabe: Erst multiplizieren, dann subtrahieren"
+    },
+    "title": "Leons Taschengeld"
+  },
+  {
+    "id": "example_kerzen",
+    "text": "Auf einem Geburtstagskuchen stehen 8 Kerzen. Lisa pustet 3 Kerzen aus. Dann pustet sie nochmal und 4 weitere Kerzen gehen aus. Wie viele Kerzen brennen noch?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "leicht",
+      "zahlenraum": "1-10",
+      "operations": ["subtraction"],
+      "tags": ["Geburtstag", "Alltag"],
+      "reason": "Zweimal Subtraktion im kleinen Zahlenraum"
+    },
+    "title": "Kerzen auf dem Kuchen"
+  },
+  {
+    "id": "example_suessigkeiten",
+    "text": "In einer Tüte sind 36 Gummibärchen. Marie, Tom und Lisa teilen sie gerecht auf. Dann isst jedes Kind 4 Gummibärchen. Wie viele Gummibärchen hat jedes Kind jetzt noch?",
+    "classification": {
+      "type": "standard",
+      "difficulty": "mittel",
+      "zahlenraum": "1-100",
+      "operations": ["division", "subtraction"],
+      "tags": ["Teilen", "Essen"],
+      "reason": "Zweischrittige Aufgabe: Aufteilen und dann abziehen"
+    },
+    "title": "Gummibärchen teilen"
+  }
+]

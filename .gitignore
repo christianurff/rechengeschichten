@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Logs / temporär
+*.log
+.tmp/
+node_modules/
+
+# Eigene Schriftdateien (siehe Hinweis in styles.css)
+fonts/

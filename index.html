@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Rechengeschichten-App</title>
+
+    <!-- Favicon und App Icons -->
+    <link rel="icon" type="image/png" href="symbole/icon.png">
+    <link rel="apple-touch-icon" href="symbole/icon.png">
+
+    <link rel="stylesheet" href="reader-text-view.css?v=5">
+    <link rel="stylesheet" href="multilingual.css?v=7">
+    <link rel="stylesheet" href="quantity-visualizer.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=21">
+
+    <!-- Hyphenopoly für deutsche Silbentrennung.
+         "de-x-syllable" trennt an ALLEN Sprechsilben-Grenzen (O·ma, A·bend) –
+         die normalen "de"-Muster sind nur für Zeilenumbruch gedacht. -->
+    <script>
+        // Hyphenopoly laden – über http(s) (Web/Deployment) UND file:// (iOS-WKWebView
+        // per loadFileURL, das lokale .wasm laden darf). Bei Problemen greift der
+        // Pattern-/Regel-Fallback in reader-text-view.js.
+        {
+            var script = document.createElement('script');
+            script.src = './hyphenopoly/Hyphenopoly_Loader.js';
+            script.onload = function () {
+                Hyphenopoly.config({
+                    require: { "de-x-syllable": "FORCEHYPHENOPOLY" },
+                    paths: {
+                        patterndir: "./hyphenopoly/patterns/",
+                        maindir: "./hyphenopoly/"
+                    },
+                    setup: {
+                        hide: "none",
+                        keepAlive: true,
+                        safeCopy: false,
+                        timeout: 5000,
+                        selectors: {
+                            ".hyphenate": {
+                                hyphen: "\u00AD",
+                                // Silbenf\u00E4rbung braucht jede Silbe, auch einbuchstabige (O\u00B7ma)
+                                leftmin: 1,
+                                rightmin: 1,
+                                // auch kurze W\u00F6rter wie "Oma", "Hase" trennen (Default w\u00E4re 6)
+                                minWordLength: 2,
+                                // Bindestrich-Komposita (E-Mail, 3D-Drucker) teilweise trennen
+                                compound: "all"
+                            }
+                        }
+                    },
+                    handleEvent: {
+                        error: function (e) { console.warn('Hyphenopoly:', e); }
+                    }
+                });
+            };
+            document.head.appendChild(script);
+        }
+    </script>
+</head>
+
+<body>
+    <!-- Skip Link for keyboard navigation -->
+    <a href="#reader-container" class="skip-link">Zum Hauptinhalt springen</a>
+
+    <div id="hyphenopoly-dummy" class="hyphenate" lang="de-x-syllable" aria-hidden="true"
+        style="position:absolute;left:-9999px;top:-9999px;">
+        Silbentrennung
+    </div>
+
+    <header>
+        <div class="header-center">
+            <img src="symbole/icon.png" alt="Rechengeschichten Icon" class="header-icon">
+            <h1>Rechengeschichten</h1>
+            <!-- Urkunden-Trophäe: erscheint dezent, sobald mindestens eine Urkunde da ist -->
+            <button class="settings-btn header-certificates-btn" id="btn-header-certificates"
+                title="Meine Urkunden" aria-label="Urkunden öffnen" style="display: none;">
+                <img src="symbole/pokal.png" alt="" class="certificates-icon">
+                <span class="certificate-count-badge" id="certificate-count-badge" style="display: none;">0</span>
+            </button>
+        </div>
+        <div class="header-menu-wrap">
+            <button class="settings-btn header-menu-btn" id="btn-header-menu" title="Menü"
+                aria-label="Menü öffnen" aria-haspopup="true" aria-expanded="false" aria-controls="header-menu">
+                <span class="header-menu-dots" aria-hidden="true">⋯</span>
+            </button>
+            <div class="header-menu" id="header-menu" role="menu" aria-label="Hauptmenü">
+                <button class="header-menu-item" id="btn-settings" role="menuitem">
+                    <img src="symbole/settings.png" alt="" class="settings-icon"> Einstellungen
+                </button>
+                <button class="header-menu-item" id="btn-open-certificates" role="menuitem">
+                    <img src="symbole/pokal.png" alt="" class="certificates-icon"> Meine Urkunden
+                </button>
+                <button class="header-menu-item" id="btn-help" role="menuitem">
+                    <img src="symbole/help.png" alt="" class="settings-icon"> Hilfe
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Dauerhinweis: kostenlose Test-KI (nur im Web ohne eigenen API-Key) -->
+        <div id="free-ai-notice" class="free-ai-notice" role="note" aria-live="polite" style="display: none;">
+            <span class="free-ai-notice-text">
+                Du nutzt zum Testen eine <strong>kostenlose KI mit deutlich schlechterer Qualität und auch deutlich langsamer</strong>.
+                Für bessere Ergebnisse trage in den <button type="button" class="free-ai-notice-link" id="free-ai-notice-settings">Einstellungen</button>
+                einen eigenen API-Schlüssel ein oder nutze die <strong>iOS-Version mit integrierter hochwertiger KI-Unterstützung</strong>.
+            </span>
+        </div>
+
+        <!-- Versteckte File-Inputs für Foto-Upload -->
+        <input type="file" id="photo-upload" class="hidden-input" accept="image/*" multiple>
+        <input type="file" id="camera-capture" class="hidden-input" accept="image/*" capture="environment">
+        <input type="file" id="chat-photo-capture" class="hidden-input" accept="image/*" capture="environment">
+        <input type="file" id="import-tasks-input" class="hidden-input" accept=".rechengeschichten,.json">
+
+        <!-- Hauptbereich: Aufgabe und Chat nebeneinander (bei Platz) -->
+        <div class="task-chat-wrapper">
+            <!-- Linke Seite: Sachaufgaben-Anzeige -->
+            <div class="task-side">
+                <!-- Stift: zurueck in den Eingabe-Modus (nur im Erkunden-Zustand sichtbar) -->
+                <button id="btn-edit-task" class="task-edit-btn" style="display: none;"
+                    title="Aufgabe bearbeiten" aria-label="Aufgabe bearbeiten">
+                    <img src="symbole/bearbeiten.png" alt="">
+                </button>
+
+                <div id="reader-container"></div>
+
+                <!-- Werkzeuge an der Karte (nur im Erkunden-Zustand sichtbar) -->
+                <div class="task-tools" id="task-tools" style="display: none;">
+                    <button id="btn-read" class="primary task-tool-btn">
+                        <img src="symbole/vorlesen.png" alt="" class="reading-toolbar-icon-img">
+                        <span class="toolbar-btn-label">Vorlesen</span>
+                    </button>
+
+                    <button id="btn-stop" class="secondary task-tool-btn" style="display: none;">
+                        <img src="symbole/stopp_lesen.png" alt="" class="reading-toolbar-icon-img">
+                        <span class="toolbar-btn-label">Stopp</span>
+                    </button>
+
+                    <div class="task-options-wrap">
+                        <button id="btn-task-options" class="task-tool-btn" title="Darstellung anpassen"
+                            aria-label="Darstellung anpassen" aria-haspopup="true" aria-expanded="false"
+                            aria-controls="task-options-popover">
+                            <span aria-hidden="true">⋯</span>
+                        </button>
+                        <div class="task-options-popover" id="task-options-popover" role="menu"
+                            aria-label="Darstellungsoptionen">
+                            <div class="task-options-row font-control">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path d="M4 7V4h16v3M9 20h6M12 4v16"></path>
+                                </svg>
+                                <input type="range" id="font-size-reading" min="16" max="40" value="24">
+                                <span id="font-size-value-reading">24px</span>
+                            </div>
+
+                            <button id="btn-hyphenate" class="secondary task-options-item">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 7h16M4 12h10M4 17h16"></path>
+                                </svg>
+                                <span class="toolbar-btn-label">Silben</span>
+                            </button>
+
+                            <button id="btn-word-images" class="secondary task-options-item" aria-pressed="false">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                <span class="toolbar-btn-label">Bilder</span>
+                            </button>
+
+                            <button id="btn-image-manager" class="secondary task-options-item" style="display: none;" title="Bilder zu den Wörtern verändern" aria-label="Bilder zu den Wörtern verändern">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                </svg>
+                                <span class="toolbar-btn-label">Anpassen</span>
+                            </button>
+
+                            <div class="language-button-wrap" id="language-button-wrap" style="display: none;">
+                                <button id="btn-language" class="secondary task-options-item" aria-haspopup="dialog" aria-expanded="false" title="Sprache der Begleitung wählen" aria-label="Sprache der Begleitung wählen">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                    </svg>
+                                    <span class="toolbar-btn-label">Mehrsprachigkeit</span>
+                                </button>
+                            </div>
+
+                            <button id="btn-share" class="secondary task-options-item">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="18" cy="5" r="3"></circle>
+                                    <circle cx="6" cy="12" r="3"></circle>
+                                    <circle cx="18" cy="19" r="3"></circle>
+                                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                                </svg>
+                                <span class="toolbar-btn-label">Teilen</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Eingabe-Wege (Zustand Leer: große Karten; Zustand Bereit: kompakte Chips) -->
+                <div class="input-ways" id="input-ways">
+                    <div class="photo-dropdown-container">
+                        <button class="input-way-btn btn-photo" id="btn-photo" title="Foto laden oder aufnehmen"
+                            aria-expanded="false" aria-haspopup="true" aria-controls="photo-dropdown">
+                            <img src="symbole/foto.png" alt="" aria-hidden="true">
+                            <span class="input-way-label">Foto</span>
+                        </button>
+                        <div class="photo-dropdown" id="photo-dropdown" role="menu" aria-label="Foto-Optionen">
+                            <button class="photo-dropdown-item" id="btn-photo-gallery" role="menuitem">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                Aus Galerie
+                            </button>
+                            <button class="photo-dropdown-item" id="btn-photo-camera" role="menuitem">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                                    </path>
+                                    <circle cx="12" cy="13" r="4"></circle>
+                                </svg>
+                                Foto aufnehmen
+                            </button>
+                        </div>
+                    </div>
+                    <button class="input-way-btn" id="btn-open-collection" title="Rechengeschichten-Sammlung">
+                        <img src="symbole/archive.png" alt="">
+                        <span class="input-way-label">Sammlung</span>
+                    </button>
+                    <button class="input-way-btn" id="btn-generate" title="Aufgabe generieren lassen">
+                        <img src="symbole/generieren.png" alt="">
+                        <span class="input-way-label">Generieren</span>
+                    </button>
+                    <button class="input-way-btn" id="btn-dialog-develop" title="Eigene Rechengeschichte im Dialog entwickeln">
+                        <img src="symbole/im_dialog.png" alt="">
+                        <span class="input-way-label">Eigene Geschichte</span>
+                    </button>
+                    <button class="input-way-btn input-way-save" id="btn-add-collection"
+                        title="Aufgabe in Sammlung speichern" style="display: none;">
+                        <img src="symbole/save.png" alt="">
+                        <span class="input-way-label">In die Sammlung</span>
+                    </button>
+                    <button class="input-way-btn" id="btn-undo-task" title="Vorherige Aufgabe wiederherstellen"
+                        style="display: none;">
+                        <span class="input-way-label">↩ Zurück</span>
+                    </button>
+                    <button id="btn-embed-overflow" class="input-way-btn embed-only"
+                        title="Weitere Optionen" aria-label="Weitere Optionen" aria-expanded="false">
+                        <span aria-hidden="true">⋯</span>
+                    </button>
+                </div>
+
+                <!-- Los geht's! -->
+                <div class="go-explore-bar" id="go-explore-bar">
+                    <button id="btn-go-explore" class="btn-go-explore" disabled>
+                        <img src="symbole/erkunden.png" alt="" aria-hidden="true">
+                        <span>Los geht's!</span>
+                    </button>
+                    <!-- Matheforscher-Protokoll v3.2: KI in der App-Sammlung ausgeschaltet
+                         (nur mit body.ki-aus sichtbar, siehe styles.css). -->
+                    <p id="ki-aus-hinweis" class="ki-aus-hinweis" role="note">
+                        Die KI ist in der App-Sammlung ausgeschaltet. Du kannst die Aufgabe lesen und
+                        vorlesen lassen; die KI-Begleitung steht gerade nicht zur Verfügung.
+                    </p>
+                </div>
+
+                <!-- Bildvorschau (wenn Foto hochgeladen) -->
+                <div class="task-image-container" id="task-image-container">
+                    <img id="task-image" src="" alt="Sachaufgabe als Bild">
+                    <button class="task-image-remove" id="btn-remove-task-image" title="Bild entfernen">&times;</button>
+                </div>
+
+                <!-- Grafik/Tabellen-Anzeige (nach OCR-Erkennung) -->
+                <div class="graphic-container" id="graphic-container" style="display: none;" role="region"
+                    aria-label="Erkannte Grafiken und Tabellen"></div>
+
+                <!-- Falsche Lösung (für Fehler-Detektiv Modus) -->
+                <div class="wrong-solution-container" id="wrong-solution-container" style="display: none;">
+                    <div class="wrong-solution-header">
+                        <span class="wrong-solution-icon">🔍</span>
+                        <span class="wrong-solution-title">Eine Lösung zum Prüfen</span>
+                        <button class="wrong-solution-read-btn" id="btn-read-wrong-solution" title="Lösung vorlesen" aria-label="Lösung vorlesen">
+                            <img src="symbole/vorlesen.png" alt="" class="wrong-solution-read-icon">
+                        </button>
+                    </div>
+                    <div class="wrong-solution-content" id="wrong-solution-content"></div>
+                    <button class="wrong-solution-reveal-btn" id="btn-reveal-correct" style="display: none;">
+                        Richtige Lösung zeigen
+                    </button>
+                </div>
+
+                <!-- Notizbuch (automatische Notizen beim Lösen) -->
+                <div class="notebook-container" id="notebook-container" style="display: none;">
+                    <div class="notebook-header">
+                        <span class="notebook-icon">📝</span>
+                        <span class="notebook-title">Mein Notizbuch</span>
+                        <button class="notebook-read-btn" id="btn-read-notebook" title="Notizbuch vorlesen" aria-label="Notizbuch vorlesen">
+                            <img src="symbole/vorlesen.png" alt="" class="notebook-read-icon">
+                        </button>
+                    </div>
+                    <div class="notebook-content" id="notebook-content"></div>
+                </div>
+
+                <!-- Visualisierung (strukturierte Mengen-Darstellung) -->
+                <div class="visualization-container" id="visualization-container" style="display: none;">
+                    <div class="qv-controls">
+                        <div class="qv-toggle" id="qv-toggle">
+                            <button type="button" data-rep="symbol" class="active">Bilder</button>
+                            <button type="button" data-rep="plaettchen">Plättchen</button>
+                        </div>
+                        <button type="button" class="qv-show-all-btn" id="qv-show-all-btn" title="Die ganze Aufgabe automatisch zeigen" style="display: none;">▶ Ganze Aufgabe zeigen</button>
+                    </div>
+                    <div class="qv-caption" id="qv-caption"></div>
+                    <div id="qv-mount"></div>
+                    <div class="qv-stepnav" id="qv-stepnav" style="display: none;">
+                        <button type="button" class="qv-nav-btn" id="qv-prev-btn" aria-label="Schritt zurück">‹ Zurück</button>
+                        <span class="qv-step-indicator" id="qv-step-indicator">0 / 0</span>
+                        <button type="button" class="qv-nav-btn" id="qv-next-btn" aria-label="Nächster Schritt">Weiter ›</button>
+                    </div>
+                </div>
+
+                <!-- Integrierte Notizfläche: kariertes Blatt direkt unter dem Text (Erkunden-Modus).
+                     Inhalt wird beim Senden einer Chat-Nachricht als Bild mitgeschickt und geleert. -->
+                <div id="inline-note-sheet" class="inline-note-sheet" style="display: none;">
+                    <div id="inline-note-resize" class="inline-note-resize" role="separator"
+                        aria-label="Notizfläche-Höhe anpassen" title="Höhe ziehen">
+                        <span class="inline-note-grip"></span>
+                    </div>
+                    <div class="inline-note-scrollwrap">
+                        <div id="inline-note-scroll" class="inline-note-scroll">
+                            <div class="inline-note-paper">
+                                <canvas id="inline-note-canvas"></canvas>
+                                <button id="inline-note-more" class="inline-note-more" type="button">＋ Mehr Platz</button>
+                            </div>
+                        </div>
+                        <!-- Dauerhaft sichtbare Scroll-Leiste: mit dem Finger ziehbar
+                             (die Zeichenfläche selbst fängt Touch-Eingaben zum Zeichnen ab) -->
+                        <div id="inline-note-rail" class="inline-note-rail" aria-hidden="true">
+                            <div id="inline-note-thumb" class="inline-note-thumb"></div>
+                        </div>
+                    </div>
+                    <div class="inline-note-toolbar" role="toolbar" aria-label="Notiz-Werkzeuge">
+                        <button id="inline-tool-pen" class="note-tool selected" aria-label="Stift" title="Stift">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                        </button>
+                        <button id="inline-tool-eraser" class="note-tool" aria-label="Radiergummi" title="Radiergummi">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l9.6-9.6a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+                        </button>
+                        <span class="inline-note-sep"></span>
+                        <div class="color-picker inline-note-colors" role="group" aria-label="Stiftfarbe">
+                            <button class="color-option inline-note-color selected" data-color="#1f2937" style="background:#1f2937" aria-label="Schwarz"></button>
+                            <button class="color-option inline-note-color" data-color="#2563eb" style="background:#2563eb" aria-label="Blau"></button>
+                            <button class="color-option inline-note-color" data-color="#dc2626" style="background:#dc2626" aria-label="Rot"></button>
+                            <button class="color-option inline-note-color" data-color="#059669" style="background:#059669" aria-label="Grün"></button>
+                        </div>
+                        <span class="inline-note-sep"></span>
+                        <button id="inline-note-undo" class="note-tool" aria-label="Rückgängig" title="Rückgängig">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10H9"/></svg>
+                        </button>
+                        <button id="inline-note-clear" class="note-tool" aria-label="Alles löschen" title="Alles löschen">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                        <span class="inline-note-spacer"></span>
+                        <button id="inline-note-collapse" class="note-tool" aria-label="Notizfläche einklappen" title="Einklappen">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <button id="inline-note-reopen" class="inline-note-reopen" style="display: none;" type="button"
+                    aria-label="Notizfläche einblenden">
+                    <img src="symbole/stift.png" alt="" aria-hidden="true"> Notizen
+                </button>
+            </div>
+
+            <!-- Rechte Seite: Chat (wird per JS sichtbar) -->
+            <div class="chat-side" id="chat-side"></div>
+        </div>
+
+        <!-- Erkennungs-Fortschritt (wird bei Bedarf angezeigt) -->
+        <div class="recognize-progress-bar" id="recognize-progress" role="status" aria-live="polite"
+            style="display: none;">
+            <div class="spinner" aria-hidden="true"></div>
+            <span id="recognize-status">Prüfe Aufgabe...</span>
+        </div>
+
+        <!-- Chat Container (enthält jetzt auch die Strategie-Auswahl) -->
+        <div id="chat-container" role="region" aria-label="Chat zur Sachaufgabe" aria-live="polite">
+            <!-- Chat-Header mit aktiver Strategie -->
+            <div id="chat-header">
+                <button id="btn-back-to-strategies" class="btn-back" title="Zurück zur Strategieauswahl">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                <span id="chat-mode-label">Was möchtest du tun?</span>
+                <div class="chat-header-actions">
+                    <button id="btn-toggle-sound" class="btn-sound" title="Ton deaktivieren" aria-label="Ton deaktivieren">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Strategie-Auswahl (als Liste im Chat-Bereich) -->
+            <div id="strategy-list" class="strategy-list">
+                <button class="strategy-list-btn" data-mode="read">
+                    <img src="symbole/text_lesen.png" alt="" class="strategy-list-icon-img">
+                    <div class="strategy-list-text">
+                        <span class="strategy-list-label">Text lesen</span>
+                        <span class="strategy-list-desc">Vorlesen und Worterklärungen</span>
+                    </div>
+                    <span class="strategy-list-arrow">&#8250;</span>
+                </button>
+                <button class="strategy-list-btn" data-mode="ask">
+                    <img src="symbole/fragen.png" alt="" class="strategy-list-icon-img">
+                    <div class="strategy-list-text">
+                        <span class="strategy-list-label">Fragen stellen</span>
+                        <span class="strategy-list-desc">Eigene Fragen klären</span>
+                    </div>
+                    <span class="strategy-list-arrow">&#8250;</span>
+                </button>
+                <button class="strategy-list-btn" data-mode="understand">
+                    <img src="symbole/text_verstehen.png" alt="" class="strategy-list-icon-img">
+                    <div class="strategy-list-text">
+                        <span class="strategy-list-label">Text verstehen</span>
+                        <span class="strategy-list-desc">Wichtige Infos finden</span>
+                    </div>
+                    <span class="strategy-list-arrow">&#8250;</span>
+                </button>
+                <button class="strategy-list-btn" data-mode="solve">
+                    <img src="symbole/loesungen_entwickeln.png" alt="" class="strategy-list-icon-img">
+                    <div class="strategy-list-text">
+                        <span class="strategy-list-label">Lösungen entwickeln</span>
+                        <span class="strategy-list-desc">Schritt für Schritt</span>
+                    </div>
+                    <span class="strategy-list-arrow">&#8250;</span>
+                </button>
+                <button class="strategy-list-btn strategy-fermi-only" data-mode="assumptions" id="assumptions-strategy-btn" style="display:none;">
+                    <span class="strategy-list-icon-emoji">🔮</span>
+                    <div class="strategy-list-text">
+                        <span class="strategy-list-label">Annahmen treffen</span>
+                        <span class="strategy-list-desc">Für Schätz- und Fermi-Aufgaben</span>
+                    </div>
+                    <span class="strategy-list-arrow">&#8250;</span>
+                </button>
+                <button class="strategy-list-btn" data-mode="check">
+                    <img src="symbole/pruefen.png" alt="" class="strategy-list-icon-img">
+                    <div class="strategy-list-text">
+                        <span class="strategy-list-label">Lösung prüfen</span>
+                        <span class="strategy-list-desc">Kann das stimmen?</span>
+                    </div>
+                    <span class="strategy-list-arrow">&#8250;</span>
+                </button>
+                <button class="strategy-list-btn" data-mode="detective">
+                    <img src="symbole/lupe.png" alt="" class="strategy-list-icon-img">
+                    <div class="strategy-list-text">
+                        <span class="strategy-list-label">Fehler-Detektiv</span>
+                        <span class="strategy-list-desc">Fehler in Lösungen finden</span>
+                    </div>
+                    <span class="strategy-list-arrow">&#8250;</span>
+                </button>
+                <button class="strategy-list-btn" data-mode="visualize" id="visualize-strategy-btn">
+                    <img src="symbole/visualisieren.png" alt="" class="strategy-list-icon-img">
+                    <div class="strategy-list-text">
+                        <span class="strategy-list-label">Visualisieren</span>
+                        <span class="strategy-list-desc">Die Aufgabe veranschaulichen</span>
+                    </div>
+                    <span class="strategy-list-arrow">&#8250;</span>
+                </button>
+            </div>
+
+            <!-- Chat-Bereich -->
+            <div id="chat-messages" role="log" aria-label="Chat-Nachrichten"></div>
+
+            <!-- Typing Indicator -->
+            <div class="chat-typing" id="chat-typing" role="status" aria-live="polite">
+                <div class="spinner" aria-hidden="true"></div>
+                <span>Denke nach...</span>
+            </div>
+
+            <!-- Vorschau eines angehängten Lösungs-Fotos -->
+            <div id="chat-photo-preview" class="chat-photo-preview" style="display: none;"></div>
+            <!-- Eingabebereich -->
+            <div id="chat-input-area">
+                <div id="chat-input-tools" class="chat-input-tools">
+                    <button id="chat-tools-toggle" class="chat-icon-btn chat-tools-toggle" aria-label="Weitere Eingaben"
+                        title="Weitere Eingaben" aria-expanded="false" aria-controls="chat-input-tools-list"
+                        aria-haspopup="true">
+                        <svg class="chat-tools-plus-icon" width="24" height="24" viewBox="0 0 24 24"
+                            fill="none" aria-hidden="true">
+                            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.4"
+                                stroke-linecap="round"></path>
+                        </svg>
+                    </button>
+                    <div id="chat-input-tools-list" class="chat-input-tools-list" aria-label="Eingabewerkzeuge">
+                        <button id="chat-draw-btn" class="chat-icon-btn chat-draw-btn" aria-label="Zeichnung erstellen"
+                            title="Zeichne deine Lösung">
+                            <img src="symbole/stift.png" alt="" aria-hidden="true">
+                            <span class="chat-input-tool-label">Zeichnen</span>
+                        </button>
+                        <button id="chat-photo-btn" class="chat-icon-btn chat-photo-btn" style="display: none;"
+                            aria-label="Foto deiner Lösung aufnehmen" title="Foto deiner Lösung">
+                            <img src="symbole/foto.png" alt="" aria-hidden="true">
+                            <span class="chat-input-tool-label">Foto</span>
+                        </button>
+                        <button id="chat-visualize-btn" class="chat-icon-btn chat-visualize-btn" style="display: none;"
+                            aria-label="Mit Plättchen visualisieren" title="Mit Plättchen visualisieren">
+                            <img src="symbole/visualisieren.png" alt="" aria-hidden="true">
+                            <span class="chat-input-tool-label">Visualisieren</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="chat-sketch-preview" class="chat-sketch-preview" style="display:none;">
+                    <img id="chat-sketch-preview-img" alt="Vorschau deiner Skizze" title="Tippen zum Weiterzeichnen">
+                    <button id="chat-sketch-preview-remove" class="chat-sketch-preview-remove" aria-label="Skizze verwerfen">×</button>
+                </div>
+                <div id="chat-composer" class="chat-composer">
+                    <button id="chat-mic-btn" class="chat-icon-btn chat-composer-mic"
+                        aria-label="Text einsprechen" aria-pressed="false" title="Text einsprechen">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
+                        </svg>
+                    </button>
+                    <input type="text" id="chat-input" placeholder="Schreiben oder sprechen …"
+                        aria-label="Nachricht schreiben oder einsprechen">
+                </div>
+                <button id="chat-send-btn" class="chat-icon-btn" aria-label="Nachricht senden">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                    </svg>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Notizfeld (Vollbreite-„Bühne", direktes Kind von <main>, Geschwister von .task-chat-wrapper) -->
+        <div id="drawing-area" class="drawing-area">
+            <!-- Zieh-Griff: Notizfeld-Höhe per Ziehen am oberen Rand anpassen -->
+            <div id="note-resize-handle" class="note-resize-handle" role="separator"
+                aria-label="Notizfeld-Höhe anpassen" title="Höhe ziehen">
+                <span class="note-resize-grip"></span>
+            </div>
+            <!-- Eine kombinierte Kopf- + Werkzeugleiste (spart Höhe fürs Canvas) -->
+            <div class="note-header">
+                <span class="drawing-title">Notizfeld</span>
+                <span class="note-sep"></span>
+                <button id="tool-pen" class="note-tool selected" aria-label="Stift" title="Stift">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                </button>
+                <button id="tool-eraser" class="note-tool" aria-label="Radiergummi" title="Radiergummi">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l9.6-9.6a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+                </button>
+                <span class="note-sep"></span>
+                <div class="note-sizes" role="group" aria-label="Stiftstärke">
+                    <button class="note-size" data-size="thin" aria-label="Dünn"><span class="sz sz-thin"></span></button>
+                    <button class="note-size selected" data-size="medium" aria-label="Mittel"><span class="sz sz-medium"></span></button>
+                    <button class="note-size" data-size="thick" aria-label="Dick"><span class="sz sz-thick"></span></button>
+                </div>
+                <span class="note-sep"></span>
+                <div class="color-picker">
+                    <button class="color-option selected" data-color="#000000" style="background:#000000" aria-label="Schwarz"></button>
+                    <button class="color-option" data-color="#2563eb" style="background:#2563eb" aria-label="Blau"></button>
+                    <button class="color-option" data-color="#dc2626" style="background:#dc2626" aria-label="Rot"></button>
+                    <button class="color-option" data-color="#059669" style="background:#059669" aria-label="Grün"></button>
+                    <button class="color-option" data-color="#d97706" style="background:#d97706" aria-label="Orange"></button>
+                </div>
+                <span class="note-sep"></span>
+                <button id="btn-note-undo" class="note-tool" aria-label="Rückgängig" title="Rückgängig">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10H9"/></svg>
+                </button>
+                <button id="btn-toggle-grid" class="note-tool selected" aria-label="Kästchen ein/aus" title="Kästchen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+                </button>
+                <button id="btn-clear-canvas" class="note-tool" aria-label="Alles löschen" title="Alles löschen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+                <button id="btn-note-objects" class="note-tool note-objects-btn" style="display:none;" aria-label="Objekte einfügen" title="Objekte">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </button>
+                <span class="note-spacer"></span>
+                <button id="btn-done-drawing" class="note-tool note-done" aria-label="Fertig" title="Fertig">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Fertig</span>
+                </button>
+                <button id="btn-close-drawing" class="drawing-close-btn" aria-label="Notizfeld schließen">&times;</button>
+            </div>
+
+            <!-- Objekt-Vorschlags-Leiste (wird per JS gefüllt/ein-/ausgeblendet) -->
+            <div id="note-object-tray" class="note-object-tray" style="display:none;"></div>
+
+            <!-- Zeichenfläche (Raster als CSS-Hintergrund, mit Klasse grid-on) -->
+            <div id="note-canvas-wrap" class="note-canvas-wrap grid-on">
+                <canvas id="drawing-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Generator-Panel (wird in chat-side angezeigt) -->
+        <div id="generator-panel" class="generator-panel" role="region" aria-label="Aufgaben-Generator">
+            <div class="generator-panel-header">
+                <span class="generator-panel-title">Aufgabe generieren</span>
+                <button id="btn-close-generator" class="btn-back" title="Generator schließen">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="generator-panel-content">
+                <div class="generator-field">
+                    <label for="generator-topic">Thema:</label>
+                    <input type="text" id="generator-topic" placeholder="z.B. Einkaufen, Tiere, Sport...">
+                </div>
+                <div class="generator-field">
+                    <label for="generator-operation">Rechenart:</label>
+                    <select id="generator-operation">
+                        <option value="addition">Plus (Addition)</option>
+                        <option value="subtraction">Minus (Subtraktion)</option>
+                        <option value="multiplication">Mal (Multiplikation)</option>
+                        <option value="division">Geteilt (Division)</option>
+                        <option value="mixed">Gemischt</option>
+                    </select>
+                </div>
+                <div class="generator-field">
+                    <label for="generator-difficulty">Klasse:</label>
+                    <select id="generator-difficulty">
+                        <option value="1">Klasse 1 (bis 20)</option>
+                        <option value="2">Klasse 2 (bis 100)</option>
+                        <option value="3">Klasse 3 (bis 1000)</option>
+                        <option value="4">Klasse 4 (bis 10&thinsp;000 und mehr)</option>
+                        <option value="5">Klasse 5 (große Zahlen)</option>
+                        <option value="6">Klasse 6 (große Zahlen)</option>
+                    </select>
+                </div>
+                <div class="generator-special-options">
+                    <label class="special-option-chip special-option-fermi" id="fermi-task-option" title="Eine Schätzaufgabe, bei der Annahmen getroffen werden müssen">
+                        <input type="checkbox" id="generator-fermi-task">
+                        <span>🔮 Fermi-Aufgabe</span>
+                    </label>
+                    <label class="special-option-chip special-option-captain" id="captain-task-option" title="Eine Aufgabe, die nicht lösbar ist (zum Kritisch-Denken-Lernen)">
+                        <input type="checkbox" id="generator-captain-task">
+                        <img src="symbole/kapitaen.png" alt="" class="chip-icon-img">
+                        <span>Kapitän-Aufgabe</span>
+                    </label>
+                </div>
+                <button id="btn-do-generate" class="btn-do-generate">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    Aufgabe generieren
+                </button>
+                <div class="generate-progress" id="generate-progress" role="status" aria-live="polite">
+                    <div class="spinner" aria-hidden="true"></div>
+                    <span id="generate-status">Generiere Aufgabe...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status-Anzeige (standardmäßig ausgeblendet) -->
+        <div class="status-bar" id="status-bar" role="status" aria-live="polite" aria-atomic="true">
+            <div class="status-indicator">
+                <div class="status-dot" id="status-dot" aria-hidden="true"></div>
+                <span id="status-text">Bereit</span>
+            </div>
+            <span id="word-count" aria-live="polite">0 Wörter</span>
+        </div>
+
+        <div class="footer-note footer-compact" id="main-footer">Rechengeschichten – ursprünglich erstellt von Christian Urff (<a
+                href="https://urff.app" target="_blank" rel="noopener">urff.app</a>) | <a
+                href="https://creativecommons.org/licenses/by-nc/4.0/deed.de" target="_blank" rel="noopener">CC BY-NC 4.0</a><span id="arasaac-attribution" style="display: none;"> | ARASAAC Piktogramme &copy; Sergio Palao, <a href="http://www.arasaac.org" target="_blank" rel="noopener">arasaac.org</a>, CC BY-NC-SA</span></div>
+    </main>
+
+    <!-- Datenschutzhinweis und Alterswahl beim ersten Web-Start -->
+    <div class="modal-overlay web-consent-modal" id="web-consent-modal" role="dialog" aria-modal="true"
+        aria-labelledby="web-consent-title" aria-describedby="web-consent-intro">
+        <div class="modal-content web-consent-content">
+            <div class="web-consent-scroll">
+                <div class="web-consent-header">
+                    <div class="web-consent-icon" aria-hidden="true">🔒</div>
+                    <div>
+                        <span class="web-consent-eyebrow">Bevor es losgeht</span>
+                        <h2 id="web-consent-title">Datenschutz und passende Erklärungen</h2>
+                    </div>
+                </div>
+
+                <p id="web-consent-intro" class="web-consent-intro">
+                    Bitte entscheide gemeinsam mit einer erwachsenen Person. Für die KI-Hilfe werden nur die
+                    Aufgaben, Nachrichten und Bilder übertragen, die du in der App verwendest.
+                </p>
+
+                <section class="web-consent-section web-consent-age-section" aria-labelledby="web-consent-age-title">
+                    <div class="web-consent-section-heading">
+                        <span class="web-consent-step" aria-hidden="true">1</span>
+                        <div>
+                            <h3 id="web-consent-age-title">Für welches Alter soll die App erklären?</h3>
+                            <p>Bei mehreren Kindern kannst du das Alter später jederzeit in den Einstellungen ändern.</p>
+                        </div>
+                    </div>
+                    <div class="web-consent-age-options" id="web-consent-age-options" role="radiogroup"
+                        aria-label="Alter auswählen">
+                        <button type="button" class="web-consent-age" data-age="6" role="radio" aria-checked="false">6</button>
+                        <button type="button" class="web-consent-age" data-age="7" role="radio" aria-checked="false">7</button>
+                        <button type="button" class="web-consent-age selected" data-age="8" role="radio" aria-checked="true">8</button>
+                        <button type="button" class="web-consent-age" data-age="9" role="radio" aria-checked="false">9</button>
+                        <button type="button" class="web-consent-age" data-age="10" role="radio" aria-checked="false">10</button>
+                        <button type="button" class="web-consent-age" data-age="11" role="radio" aria-checked="false">11</button>
+                        <button type="button" class="web-consent-age" data-age="12" role="radio" aria-checked="false">12</button>
+                    </div>
+                    <p class="web-consent-age-value"><strong id="web-consent-age-value">8 Jahre</strong> – Erklärungen und Aufgaben werden daran angepasst.</p>
+                </section>
+
+                <section class="web-consent-section" aria-labelledby="web-consent-ai-title">
+                    <div class="web-consent-section-heading">
+                        <span class="web-consent-step" aria-hidden="true">2</span>
+                        <div>
+                            <h3 id="web-consent-ai-title">KI-Unterstützung verwenden</h3>
+                            <p>Eingegebene Inhalte werden zur Bearbeitung an den KI-Dienst gesendet, der in den
+                                Einstellungen hinterlegt ist. Ohne eigenen Zugang bleiben die KI-Funktionen aus.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Betreiber-Hinweis: Hier gehört die eigene Datenschutzerklärung verlinkt.
+                     <a class="web-consent-privacy-link" href="/datenschutz" target="_blank" rel="noopener">
+                         Datenschutzerklärung lesen <span aria-hidden="true">&#8599;</span>
+                     </a> -->
+            </div>
+
+            <div class="web-consent-actions">
+                <div class="web-consent-buttons">
+                    <button type="button" id="btn-web-consent-basic" class="web-consent-btn web-consent-btn-basic">
+                        Zustimmen und starten
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal" role="dialog" aria-modal="true"
+        aria-labelledby="settings-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="settings-modal-title">Einstellungen</h2>
+                <div class="modal-header-buttons">
+                    <button class="btn-save-settings btn-save-settings-top" id="btn-save-settings-top">Speichern</button>
+                    <button class="modal-close" id="btn-close-settings"
+                        aria-label="Einstellungen schließen">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <!-- Altersgruppe -->
+                <fieldset class="settings-group">
+                    <legend>Altersgruppe</legend>
+                    <label for="age-slider" class="sr-only">Für welches Alter?</label>
+                    <div class="difficulty-slider">
+                        <input type="range" id="age-slider" min="6" max="12" step="1" value="8"
+                            aria-describedby="age-desc age-value">
+                        <div class="difficulty-labels" aria-hidden="true">
+                            <span>Klasse 1</span>
+                            <span>Klasse 6</span>
+                        </div>
+                        <div class="difficulty-value" id="age-value" aria-live="polite">8 Jahre</div>
+                    </div>
+                    <small id="age-desc">Die KI passt ihre Erklärungen an dieses Alter an.</small>
+                </fieldset>
+
+                <!-- KI-Modell (in nativer iOS-App ausgeblendet, dort ist das Modell fest vorgegeben) -->
+                <fieldset class="settings-group" id="settings-ki-modell">
+                    <legend>KI-Modell</legend>
+                    <label for="model-select" class="sr-only">KI-Modell auswählen</label>
+                    <select id="model-select" aria-describedby="model-desc">
+                        <option value="llama-3.3-70b-versatile">Llama 3.3 70b (Sehr schlau)</option>
+                        <option value="openai/gpt-oss-120b">GPT OSS 120b (Stark)</option>
+                        <option value="openai/gpt-oss-20b">GPT OSS 20b (Standard)</option>
+                        <option value="llama-3.1-8b-instant">Llama 3.1 8b (Schnell)</option>
+                    </select>
+                    <small id="model-desc">Wähle das KI-Modell für die Unterstützung.</small>
+                </fieldset>
+
+                <!-- Sprachausgabe -->
+                <fieldset class="settings-group">
+                    <legend>Sprachausgabe</legend>
+                    <label for="voice-select">Stimme</label>
+                    <select id="voice-select" aria-describedby="voice-desc">
+                        <option value="">Wird geladen...</option>
+                    </select>
+                    <small id="voice-desc">Wähle eine deutsche Stimme für das Vorlesen.</small>
+
+                    <label for="reading-speed-settings" style="margin-top: 15px; display: block;">Vorlesegeschwindigkeit</label>
+                    <div class="difficulty-slider">
+                        <input type="range" id="reading-speed-settings" min="0.3" max="1.2" step="0.1" value="0.9"
+                            aria-describedby="speed-value">
+                        <div class="difficulty-labels" aria-hidden="true">
+                            <span>Langsam</span>
+                            <span>Schnell</span>
+                        </div>
+                        <div class="difficulty-value" id="reading-speed-value-settings" aria-live="polite">0.9x</div>
+                    </div>
+
+                    <label for="visualize-speed-settings" style="margin-top: 15px; display: block;">Visualisierungsgeschwindigkeit</label>
+                    <div class="difficulty-slider">
+                        <input type="range" id="visualize-speed-settings" min="1" max="4" step="1" value="2">
+                        <div class="difficulty-labels" aria-hidden="true">
+                            <span>Sehr langsam</span>
+                            <span>Schnell</span>
+                        </div>
+                        <div class="difficulty-value" id="visualize-speed-value-settings" aria-live="polite">Langsam</div>
+                    </div>
+                </fieldset>
+
+                <!-- Anzeige-Optionen -->
+                <fieldset class="settings-group">
+                    <legend>Anzeige</legend>
+                    <label class="checkbox-setting">
+                        <input type="checkbox" id="show-word-count">
+                        <span>Wörterzähler anzeigen</span>
+                    </label>
+                    <small>Zeigt die Statusleiste mit Wörterzählung unter dem Text an.</small>
+                    <label class="checkbox-setting" style="margin-top: 12px;">
+                        <input type="checkbox" id="render-graphics" checked>
+                        <span>Tabellen und Grafiken als HTML/SVG darstellen</span>
+                    </label>
+                    <small>Zeigt erkannte Tabellen und Diagramme gerendert an statt als ASCII-Text.</small>
+                    <label class="checkbox-setting" style="margin-top: 12px;">
+                        <input type="checkbox" id="show-notebook" checked>
+                        <span>Notizbuch beim Lösen anzeigen</span>
+                    </label>
+                    <small>Notiert automatisch die Lösungsschritte neben dem Text.</small>
+                    <label class="checkbox-setting" style="margin-top: 12px;">
+                        <input type="checkbox" id="explanation-images" checked>
+                        <span>Bilder/Emojis bei Worterklärungen anzeigen</span>
+                    </label>
+                    <small>Zeigt beim langen Tippen auf ein Wort ein passendes Bild (ARASAAC) oder Emoji neben der Erklärung.</small>
+                    <label class="checkbox-setting" style="margin-top: 12px;">
+                        <input type="checkbox" id="photo-in-chat" checked>
+                        <span>Foto der eigenen Lösung im Chat erlauben</span>
+                    </label>
+                    <small>Zeigt im Chat (z. B. „Lösung entwickeln", „Lösung prüfen", „Fehler-Detektiv", „Text verstehen") einen Kamera-Knopf, mit dem das Kind seine Lösung/Skizze fotografieren und der KI zeigen kann.</small>
+                    <label class="checkbox-setting" style="margin-top: 12px;">
+                        <input type="checkbox" id="note-objects" checked>
+                        <span>Objekte/Bilder in die Notiz einfügen erlauben</span>
+                    </label>
+                    <small>Bietet im Notizfeld passende Bilder zum Sachtext an (z. B. Äpfel, Murmeln), die das Kind einfügen, verschieben und entfernen kann.</small>
+                    <label class="checkbox-setting" style="margin-top: 12px;">
+                        <input type="checkbox" id="inline-notes" checked>
+                        <span>Notizfläche unter dem Text</span>
+                    </label>
+                    <small>Zeigt beim Erkunden ein kariertes Blatt direkt unter der Aufgabe. Das Kind schreibt dort mit dem Stift; geänderte Notizen werden beim Absenden einer Chat-Nachricht automatisch mitgeschickt und bleiben zum Weiterarbeiten erhalten. Ausgeschaltet erscheint stattdessen wieder der „Zeichnen"-Knopf im Chat.</small>
+                </fieldset>
+
+                <!-- Sprachen / Mehrsprachigkeit -->
+                <fieldset class="settings-group" id="settings-languages">
+                    <legend>Sprachen / Mehrsprachigkeit</legend>
+                    <label class="checkbox-setting">
+                        <input type="checkbox" id="language-button-toggle">
+                        <span>Sprach-Button in der Leiste anzeigen</span>
+                    </label>
+                    <small>Alle Sprachen sind willkommen und wertvoll. Wähle eine Sprache, die beim Denken, Fragen oder Erklären helfen kann. Die KI darf in dieser Sprache erklären, übersetzen und Brücken zwischen den Sprachen bauen. Für das gemeinsame Besprechen kann sie helfen, Gedanken auch verständlich auf Deutsch auszudrücken. Vorlesen ist möglich, wenn eine passende Stimme verfügbar ist.</small>
+                    <div id="language-list" class="language-settings-list"></div>
+                    <div class="language-add-row">
+                        <input type="text" id="language-add-input" dir="auto" placeholder="Sprache oder Dialekt (z.B. Romanes, عربي)" maxlength="30" aria-label="Weitere Sprache oder einen Dialekt hinzufügen">
+                        <button type="button" id="btn-add-language" class="secondary" aria-label="Sprache oder Dialekt hinzufügen">Hinzufügen</button>
+                    </div>
+                </fieldset>
+
+                <!-- Generator-Optionen -->
+                <fieldset class="settings-group">
+                    <legend>Generator</legend>
+                    <label class="checkbox-setting">
+                        <input type="checkbox" id="hide-captain-task">
+                        <span>Kapitänsaufgabe-Option ausblenden</span>
+                    </label>
+                    <small>Blendet die Option "Kapitänsaufgabe erstellen" im Generator aus.</small>
+                </fieldset>
+
+                <!-- Urkunden-Optionen -->
+                <fieldset class="settings-group">
+                    <legend>Urkunden</legend>
+                    <label class="checkbox-setting">
+                        <input type="checkbox" id="clear-certificates-after-export">
+                        <span>Archiv nach PDF-Export leeren</span>
+                    </label>
+                    <small>Leert das Urkunden-Archiv automatisch nachdem ein PDF erstellt wurde.</small>
+                </fieldset>
+
+                <!-- Abschluss-Aufgabe (Transfer) -->
+                <fieldset class="settings-group">
+                    <legend>Abschluss-Aufgabe</legend>
+                    <label class="checkbox-setting">
+                        <input type="checkbox" id="micro-assessment-enabled">
+                        <span>Abschluss-Aufgabe zeigen</span>
+                    </label>
+                    <small>Nach dem Lösen einer Aufgabe wird eine ähnliche Aufgabe gezeigt, damit du zeigen kannst, was du gelernt hast.</small>
+                </fieldset>
+
+                <!-- API-Zugang (in nativer iOS-App ausgeblendet, dort ist die KI fest integriert) -->
+                <fieldset class="settings-group" id="settings-api-zugang">
+                    <legend>API-Zugang</legend>
+                    <div class="api-section">
+                        <!-- Google AI Studio -->
+                        <div class="input-group"
+                            style="background: #f0fdf4; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                            <label for="google-api-key" style="color: #15803d; font-weight: 500;">Google AI Studio
+                                API-Key (empfohlen)</label>
+                            <input type="password" id="google-api-key" placeholder="AIza..." autocomplete="off">
+                            <small style="color: #166534;">Kostenlos auf <a href="https://aistudio.google.com/apikey"
+                                    target="_blank" rel="noopener" style="color: #15803d;">aistudio.google.com</a>
+                                erstellen</small>
+                        </div>
+
+                        <!-- Groq-Bereich (in nativer iOS-App ausgeblendet) -->
+                        <div class="groq-api-section">
+                            <div style="text-align: center; color: #6b7280; font-size: 12px; margin: 10px 0;"
+                                aria-hidden="true">- ODER Groq -</div>
+
+                            <div class="input-group">
+                                <label for="api-key">Groq API-Key</label>
+                                <input type="password" id="api-key" placeholder="gsk_..." autocomplete="off">
+                                <small>Kostenloses Kontingent auf <a href="https://console.groq.com" target="_blank"
+                                        rel="noopener">console.groq.com</a>. Nur mit Groq funktioniert die Spracheingabe.</small>
+                            </div>
+                        </div>
+
+                        <!-- Hetzner Inference (Testoption, Inferenz in Deutschland) -->
+                        <div class="hetzner-section">
+                            <div style="text-align: center; color: #6b7280; font-size: 12px; margin: 10px 0;"
+                                aria-hidden="true">- ODER Hetzner (Test) -</div>
+                            <div class="input-group"
+                                style="background: #fef2f2; padding: 12px; border-radius: 8px;">
+                                <label for="hetzner-worker-url" style="color: #b91c1c; font-weight: 500;">Hetzner Inference (Deutschland)</label>
+                                <input type="url" id="hetzner-worker-url" placeholder="https://mein-proxy.workers.dev" autocomplete="off">
+                                <select id="hetzner-model" style="margin-top: 8px;">
+                                    <option value="">Aus</option>
+                                </select>
+                                <small style="color: #7f1d1d;">Braucht einen eigenen OpenAI-kompatiblen Proxy vor
+                                    inference.hetzner.com (der Token darf nicht ins Frontend). Erst mit URL <em>und</em>
+                                    gewähltem Modell wird dieser Weg statt Google oder Groq genutzt. Spracheingabe
+                                    braucht weiterhin einen Groq-Zugang.</small>
+                            </div>
+                        </div>
+
+                        <!-- OpenRouter Free (via Worker) -->
+                        <div class="openrouter-section">
+                            <div style="text-align: center; color: #6b7280; font-size: 12px; margin: 10px 0;"
+                                aria-hidden="true">- ODER OpenRouter Free -</div>
+                            <div class="input-group"
+                                style="background: #fef3c7; padding: 12px; border-radius: 8px;">
+                                <label for="openrouter-worker-url" style="color: #92400e; font-weight: 500;">OpenRouter Worker-URL</label>
+                                <input type="url" id="openrouter-worker-url" placeholder="https://mein-proxy.workers.dev" autocomplete="off">
+                                <small style="color: #78350f;">URL eines eigenen Proxys, der den OpenRouter-Key
+                                    serverseitig hält (siehe README).</small>
+                            </div>
+                        </div>
+                    </div>
+                    <small id="api-desc">Ohne eigenen Zugang bleiben die KI-Funktionen aus. Google AI Studio ist kostenlos und empfohlen; alternativ ein Groq-API-Key oder ein eigener Proxy.</small>
+                    <small id="api-desc-native" style="display: none;">Kostenlos auf aistudio.google.com erstellen. Damit kannst du zusätzlich zur integrierten KI auch Google Gemini nutzen.</small>
+                    <!-- Matheforscher-Protokoll v3.2: Die App-Sammlung stellt die KI bereit
+                         bzw. hat sie abgeschaltet - eigene Zugangsfelder entfallen dann. -->
+                    <small id="api-desc-kanal" style="display: none;">Die KI kommt aus der App-Sammlung. Ein eigener Zugang ist hier nicht nötig.</small>
+                    <small id="api-desc-kanal-aus" style="display: none;">Die KI ist in der App-Sammlung ausgeschaltet. Die KI-Funktionen dieser App stehen deshalb gerade nicht zur Verfügung.</small>
+                </fieldset>
+
+                <!-- Credits (nur in iOS-App sichtbar) -->
+                <div id="settings-credits" class="settings-credits" style="display: none;">
+                    <div style="text-align: center; padding: 15px 0; border-top: 1px solid #e5e7eb; margin-top: 10px; color: #6b7280; font-size: 13px;">
+                        Rechengeschichten – ursprünglich erstellt von Christian Urff | <a href="https://urff.app" target="_blank" rel="noopener" style="color: #3952a0;">urff.app</a><br>
+                        <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.de" target="_blank" rel="noopener" style="color: #3952a0;">CC BY-NC 4.0</a>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="display: flex; justify-content: space-between; gap: 10px; align-items: center;">
+                <button id="btn-reset-settings"
+                    style="background: transparent; color: #6b7280; border: none; font-size: 14px; cursor: pointer; padding: 10px;">Zurücksetzen</button>
+                <button class="btn-save-settings" id="btn-save-settings" style="width: auto; flex: 1;">Speichern &
+                    Schließen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mikro-Assessment Modal -->
+    <div class="modal-overlay" id="micro-assessment-modal" role="dialog" aria-modal="true"
+        aria-labelledby="micro-assessment-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="micro-assessment-modal-title">Kannst du das auch?</h2>
+                <button class="modal-close" id="ma-close-btn"
+                    aria-label="Abschluss-Aufgabe schließen">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="ma-item-text" style="font-size: 1.1em; margin-bottom: 16px;"></p>
+                <label for="ma-answer-input" style="display: block; margin-bottom: 6px; font-weight: 500;">Deine Antwort:</label>
+                <input type="number" id="ma-answer-input"
+                    style="width: 100%; padding: 10px; font-size: 1.1em; border: 2px solid #d1d5db; border-radius: 8px; box-sizing: border-box;"
+                    aria-label="Antwort eingeben">
+                <div id="ma-feedback" aria-live="polite"
+                    style="margin-top: 12px; font-size: 1.05em; font-weight: 500; min-height: 1.5em;"></div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="ma-skip-btn"
+                    style="background: transparent; color: #6b7280; border: none; font-size: 14px; cursor: pointer; padding: 10px;">Überspringen</button>
+                <button id="ma-check-btn" class="btn-save-settings"
+                    style="width: auto;">Prüfen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div class="modal-overlay" id="share-modal" role="dialog" aria-modal="true" aria-labelledby="share-modal-title">
+        <div class="modal-content share-modal-content">
+            <div class="modal-header">
+                <h2 id="share-modal-title">Aufgabe teilen</h2>
+                <button class="modal-close" id="btn-close-share" aria-label="Teilen-Dialog schließen">&times;</button>
+            </div>
+            <div class="modal-body share-modal-body">
+                <div class="share-qr-container">
+                    <div id="share-qr-code"></div>
+                </div>
+                <div class="share-link-section">
+                    <label>Link zur Aufgabe:</label>
+                    <div class="share-link-row">
+                        <input type="text" id="share-link-input" readonly>
+                        <button id="btn-copy-link" class="share-btn-copy" title="Link kopieren"
+                            aria-label="Link in Zwischenablage kopieren">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="copy-feedback" class="share-copy-feedback"></div>
+                </div>
+                <div class="share-options">
+                    <label class="share-option" id="share-api-key-option">
+                        <input type="checkbox" id="share-include-api-key">
+                        <span>Zugangsschlüssel mitschicken</span>
+                    </label>
+                    <label class="share-option">
+                        <input type="checkbox" id="share-include-settings">
+                        <span>Alterseinstellung mitschicken</span>
+                    </label>
+                </div>
+                <button id="btn-download-qr" class="share-btn-download">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    QR-Code herunterladen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collection Modal -->
+    <div class="modal-overlay" id="collection-modal" role="dialog" aria-modal="true"
+        aria-labelledby="collection-modal-title">
+        <div class="modal-content collection-modal-content">
+            <div class="modal-header">
+                <h2 id="collection-modal-title">Rechengeschichten-Sammlung</h2>
+                <button class="modal-close" id="btn-close-collection"
+                    aria-label="Sammlung schließen">&times;</button>
+            </div>
+            <div class="modal-body collection-modal-body">
+                <!-- Suchfeld -->
+                <div class="collection-search">
+                    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="collection-search-input" placeholder="Aufgaben durchsuchen..." aria-label="Aufgaben durchsuchen">
+                    <button id="btn-clear-search" class="btn-clear-search" title="Suche leeren" style="display: none;">&times;</button>
+                </div>
+                <!-- Filter-Bereich -->
+                <div class="collection-filters">
+                    <div class="filter-group">
+                        <span class="filter-label">Zahlenraum:</span>
+                        <button class="filter-tag" data-filter-type="zahlenraum" data-filter-value="1-10">bis 10</button>
+                        <button class="filter-tag" data-filter-type="zahlenraum" data-filter-value="1-20">bis 20</button>
+                        <button class="filter-tag" data-filter-type="zahlenraum" data-filter-value="1-100">bis 100</button>
+                        <button class="filter-tag" data-filter-type="zahlenraum" data-filter-value="1-1000">bis 1000</button>
+                        <button class="filter-tag" data-filter-type="zahlenraum" data-filter-value="gross">&gt;1000</button>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Typ:</span>
+                        <button class="filter-tag" data-filter-type="type" data-filter-value="standard">Standard</button>
+                        <button class="filter-tag" data-filter-type="type" data-filter-value="fermi">Fermi</button>
+                        <button class="filter-tag" data-filter-type="type" data-filter-value="captain">Kapitän</button>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Schwierigkeit:</span>
+                        <button class="filter-tag" data-filter-type="difficulty" data-filter-value="leicht">Leicht</button>
+                        <button class="filter-tag" data-filter-type="difficulty" data-filter-value="mittel">Mittel</button>
+                        <button class="filter-tag" data-filter-type="difficulty" data-filter-value="schwer">Schwer</button>
+                    </div>
+                </div>
+
+                <!-- Meine Aufgaben -->
+                <div class="collection-section">
+                    <div class="collection-section-header">
+                        <h3 class="collection-section-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            Meine Aufgaben
+                        </h3>
+                        <div class="collection-section-actions">
+                            <button id="btn-import-tasks" class="btn-collection-action" title="Aufgaben importieren">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <span>Importieren</span>
+                            </button>
+                            <button id="btn-export-tasks" class="btn-collection-action" title="Aufgaben exportieren" disabled>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                <span>Exportieren</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="collection-list" id="user-tasks-list">
+                        <!-- Wird per JS befüllt -->
+                        <p class="collection-empty-hint" id="user-tasks-empty">
+                            Du hast noch keine eigenen Aufgaben gespeichert.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Beispiel-Aufgaben -->
+                <div class="collection-section">
+                    <h3 class="collection-section-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                        Beispiel-Aufgaben
+                    </h3>
+                    <div class="collection-list" id="example-tasks-list">
+                        <!-- Wird per JS befüllt -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Load Modal -->
+    <div class="modal-overlay confirm-modal" id="confirm-load-modal" role="dialog" aria-modal="true"
+        aria-labelledby="confirm-load-title">
+        <div class="modal-content confirm-modal-content">
+            <div class="modal-header">
+                <h2 id="confirm-load-title">Aufgabe laden?</h2>
+                <button class="modal-close" id="btn-close-confirm-load"
+                    aria-label="Abbrechen">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Du hast bereits eine Aufgabe eingegeben. Möchtest du diese durch die ausgewählte Aufgabe ersetzen?</p>
+                <div class="confirm-preview" id="confirm-load-preview"></div>
+            </div>
+            <div class="modal-footer confirm-actions">
+                <button id="btn-cancel-load" class="btn-cancel">Abbrechen</button>
+                <button id="btn-confirm-load" class="btn-confirm">Ersetzen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certificates Modal -->
+    <div class="modal-overlay" id="certificates-modal" role="dialog" aria-modal="true"
+        aria-labelledby="certificates-modal-title">
+        <div class="modal-content certificates-modal-content">
+            <div class="modal-header">
+                <h2 id="certificates-modal-title">Meine Urkunden</h2>
+                <button class="modal-close" id="btn-close-certificates"
+                    aria-label="Urkunden schließen">&times;</button>
+            </div>
+            <div class="modal-body certificates-modal-body">
+                <!-- Urkunden-Liste -->
+                <div class="certificates-section">
+                    <div class="certificates-list" id="certificates-list">
+                        <!-- Wird per JS befüllt -->
+                        <p class="certificates-empty-hint" id="certificates-empty">
+                            Du hast noch keine Urkunden gesammelt. Schließe Aufgaben erfolgreich ab, um Urkunden zu erhalten!
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer certificates-modal-footer">
+                <button id="btn-export-certificates-pdf" class="btn-export-certificates" disabled>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Als PDF herunterladen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailansicht eines gebuendelten Urkundenblatts -->
+    <div class="modal-overlay certificate-detail-modal" id="certificate-detail-modal" role="dialog" aria-modal="true"
+        aria-labelledby="certificate-detail-title">
+        <div class="modal-content certificate-detail-content">
+            <div class="modal-header certificate-detail-header">
+                <div>
+                    <span class="certificate-detail-eyebrow">Mein Urkundenblatt</span>
+                    <h2 id="certificate-detail-title">Urkunde</h2>
+                </div>
+                <button class="modal-close" id="btn-close-certificate-detail"
+                    aria-label="Detailansicht schließen">&times;</button>
+            </div>
+            <div class="modal-body certificate-detail-body" id="certificate-detail-body"></div>
+        </div>
+    </div>
+
+    <!-- Celebration Modal (Feier bei Abschluss) -->
+    <div class="modal-overlay celebration-modal" id="celebration-modal" role="dialog" aria-modal="true"
+        aria-labelledby="celebration-modal-title">
+        <div class="modal-content celebration-modal-content">
+            <div class="celebration-icon-container">
+                <span class="celebration-icon" id="celebration-icon">🏆</span>
+            </div>
+            <h2 id="celebration-modal-title" class="celebration-title">Geschafft!</h2>
+            <p class="celebration-kompetenz" id="celebration-kompetenz"></p>
+            <p class="celebration-feedback" id="celebration-feedback"></p>
+            <div class="celebration-actions">
+                <button id="btn-celebration-certificate" class="btn-celebration-primary">
+                    Urkunden ansehen
+                </button>
+                <button id="btn-celebration-continue" class="btn-celebration-secondary">
+                    Weiter machen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding Spotlight Overlay (für ausgeschnittene Bereiche) -->
+    <div id="onboarding-spotlight"></div>
+
+    <!-- Onboarding Tutorial Modal -->
+    <div class="modal-overlay onboarding-modal" id="onboarding-modal" role="dialog" aria-modal="true"
+        aria-labelledby="onboarding-modal-title">
+        <div class="modal-content onboarding-modal-content">
+            <div class="onboarding-header">
+                <img src="symbole/icon.png" alt="" class="onboarding-icon">
+                <h2 id="onboarding-modal-title">Willkommen bei Rechengeschichten!</h2>
+            </div>
+            <div class="onboarding-slides">
+                <div class="onboarding-slide active" data-slide="0">
+                    <div class="onboarding-slide-icon">
+                        <img src="symbole/bearbeiten.png" alt="">
+                    </div>
+                    <h3>Aufgabe eingeben</h3>
+                    <p>Schreibe eine Textaufgabe, mache ein Foto einer Aufgabe, wähle eine Aufgabe aus der Sammlung oder entwickle selbst Aufgaben.</p>
+                </div>
+                <div class="onboarding-slide" data-slide="1">
+                    <div class="onboarding-slide-icon">
+                        <img src="symbole/erkunden.png" alt="">
+                    </div>
+                    <h3>Aufgabe erkunden</h3>
+                    <p>Tippe auf <strong>Los geht's!</strong>, wenn deine Aufgabe fertig ist. Dort liest du gemeinsam den Text, stellst Fragen, findest wichtige Informationen und entwickelst Lösungen – eine KI unterstützt dich dabei. Mit dem Stift ✏️ an der Aufgaben-Karte kannst du die Aufgabe jederzeit wieder ändern.</p>
+                </div>
+                <div class="onboarding-slide" data-slide="2">
+                    <div class="onboarding-slide-icon">
+                        <span class="onboarding-emoji-icon">🏆</span>
+                    </div>
+                    <h3>Urkunden</h3>
+                    <p>Wenn die Herausforderungen erfolgreich gemeistert hast, bekommst du Urkunden und Zertifikate, die du herunterladen und ausdrucken kannst.</p>
+                </div>
+                <div class="onboarding-slide" data-slide="3">
+                    <div class="onboarding-slide-icon">
+                        <span class="onboarding-emoji-icon">&#9881;</span>
+                    </div>
+                    <h3>Einstellungen anpassen</h3>
+                    <p>Stelle zum Beispiel dein Alter ein, damit die Erklärungen genau zu dir passen.</p>
+                </div>
+            </div>
+            <div class="onboarding-dots">
+                <button class="onboarding-dot active" data-slide="0" aria-label="Folie 1"></button>
+                <button class="onboarding-dot" data-slide="1" aria-label="Folie 2"></button>
+                <button class="onboarding-dot" data-slide="2" aria-label="Folie 3"></button>
+                <button class="onboarding-dot" data-slide="3" aria-label="Folie 4"></button>
+            </div>
+            <div class="onboarding-actions">
+                <button id="btn-onboarding-skip" class="btn-onboarding-skip">Überspringen</button>
+                <button id="btn-onboarding-next" class="btn-onboarding-next">Weiter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Manager Modal -->
+    <div class="modal-overlay" id="image-manager-modal" role="dialog" aria-modal="true" aria-labelledby="image-manager-title">
+        <div class="modal-content image-manager-content">
+            <div class="modal-header">
+                <h2 id="image-manager-title">Bilder verändern</h2>
+                <button class="modal-close" id="btn-close-image-manager" aria-label="Bildmanager schließen">&times;</button>
+            </div>
+            <div class="modal-body image-manager-body">
+                <div class="image-manager-info">
+                    Hier kannst du die Bilder für einzelne Wörter hinzufügen, verändern oder ausblenden.
+                </div>
+                <div class="add-word-section">
+                    <input type="text" id="add-word-input" placeholder="Neues Wort eingeben..." aria-label="Neues Wort eingeben">
+                    <button id="btn-add-word" class="btn-add-word" title="Wort hinzufügen und Bild suchen">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Hinzufügen
+                    </button>
+                </div>
+                <div class="word-list-container" id="word-list-container">
+                    <!-- Word items will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Search Modal -->
+    <div class="modal-overlay" id="image-search-modal" role="dialog" aria-modal="true" aria-labelledby="image-search-title">
+        <div class="modal-content image-search-content">
+            <div class="modal-header">
+                <h2 id="image-search-title">Bild suchen für: <span id="search-word-label"></span></h2>
+                <button class="modal-close" id="btn-close-image-search" aria-label="Bildsuche schließen">&times;</button>
+            </div>
+            <div class="modal-body image-search-body">
+                <div class="search-input-row">
+                    <input type="text" id="image-search-input" placeholder="Suchbegriff eingeben..." aria-label="Suchbegriff für Bilder">
+                    <button id="btn-search-images" class="btn-search">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        Suchen
+                    </button>
+                </div>
+                <div class="search-results-loading" id="search-results-loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>Suche Bilder...</span>
+                </div>
+                <div class="search-results-grid" id="search-results-grid">
+                    <!-- Search results will be rendered here -->
+                </div>
+                <div class="search-no-results" id="search-no-results" style="display: none;">
+                    Keine Bilder gefunden. Versuche einen anderen Suchbegriff.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Module -->
+    <!-- Gebündelte Bibliotheken (lokal statt CDN: offline-fähig in der iOS-App,
+         kein Render-Blocking mehr im head; müssen nur vor app.js geladen sein) -->
+    <script src="vendor/qrcode.min.js?v=1"></script>
+    <script src="vendor/lz-string.min.js?v=1"></script>
+    <script src="vendor/jspdf.umd.min.js?v=1"></script>
+
+    <script src="reader-text-view.js?v=8"></script>
+    <script src="multilingual.js?v=5"></script>
+    <script src="word-explanation-utils.js?v=4"></script>
+    <script src="chat-photo-utils.js?v=4"></script>
+    <script src="note-pad.js?v=5"></script>
+    <script src="inline-note-sheet.js?v=4"></script>
+    <script src="quantity-visualizer.js?v=6"></script>
+    <script src="visualization-guard.js?v=6"></script>
+    <script src="visualization-prompts.js?v=5"></script>
+    <script src="api.js?v=14"></script>
+    <!-- Matheforscher-Plattform-Bridge: aktiv nur, wenn die App im iframe der Plattform läuft -->
+    <script src="matheforscher-bridge.js?v=6"></script>
+    <script src="layout-transitions.js?v=2"></script>
+    <script src="chat-input-overflow.js?v=2"></script>
+    <script src="reading-word-utils.js?v=1"></script>
+    <script src="speech-text-utils.js?v=1"></script>
+    <script src="app.js?v=27"></script>
+</body>
+
+</html>

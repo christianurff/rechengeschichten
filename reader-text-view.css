@@ -1,0 +1,744 @@
+/**
+ * ReaderTextView - CSS Styles
+ *
+ * Basis-Styles für die ReaderTextView Web-Komponente
+ */
+
+/* === Import Google Font (ABeeZee) === */
+@import url('https://fonts.googleapis.com/css2?family=ABeeZee:ital@0;1&display=swap');
+
+/* === CSS Custom Properties (Theme) === */
+/* Diese Variablen ergänzen die globalen Variablen aus styles.css */
+:root {
+    /* Eigene Fibelschrift hier vorne ergänzen, siehe Hinweis in styles.css */
+    --rtv-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --rtv-font-size: 24px;
+    --rtv-line-height: 1.6;
+    --rtv-text-color: var(--color-text-primary, #1a1a1a);
+    --rtv-bg-color: var(--color-surface-raised, #fafafa);
+    --rtv-highlight-color: #fde047;
+    --rtv-overlay-border-color: #facc15;
+    --rtv-overlay-bg-color: rgba(250, 204, 21, 0.1);
+    --rtv-explanation-bg: rgba(239, 68, 68, 0.1);
+    --rtv-explanation-border: var(--color-accent-red, #ef4444);
+    --rtv-padding: 30px;
+    --rtv-border-radius: var(--radius-md, 8px);
+    --rtv-syllable-color-1: var(--color-accent-red, #dc2626);
+    --rtv-syllable-color-2: #2c6693;
+}
+
+/* Dark Theme */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --rtv-text-color: #e5e5e5;
+        --rtv-bg-color: var(--color-surface, #1f1f1f);
+        --rtv-highlight-color: #ca8a04;
+        --rtv-overlay-border-color: #eab308;
+        --rtv-overlay-bg-color: rgba(234, 179, 8, 0.15);
+    }
+}
+
+/* === Container === */
+.reader-text-view-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 0;
+}
+
+/* === Text View === */
+.reader-text-view {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--rtv-padding);
+    box-sizing: border-box;
+    font-family: var(--rtv-font-family);
+    font-size: var(--rtv-font-size);
+    line-height: var(--rtv-line-height);
+    color: var(--rtv-text-color);
+    background-color: var(--rtv-bg-color);
+    outline: none;
+    cursor: text;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    position: relative;
+}
+
+/* iOS-App: Im Lese-/Erkunden-Modus das native Auswahl-/Callout-Menü beim Longpress
+   (Kopieren, Nachschlagen, Übersetzen …) unterdrücken – es überlagert sonst die Worterklärung.
+   Die Worterklärung läuft über einen eigenen JS-Longpress-Timer (touchstart), der von
+   user-select/touch-callout NICHT beeinflusst wird; Touch-Gesten/Scrollen bleiben erhalten.
+   Bewusst nur in der nativen App (body.native-app) und nur im Lesemodus (.reader-mode). */
+body.native-app .reader-mode .reader-text-view,
+body.native-app .reader-mode .reader-text-view * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+
+/* Scrollbar Styling */
+.reader-text-view::-webkit-scrollbar {
+    width: 8px;
+}
+
+.reader-text-view::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.reader-text-view::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.reader-text-view::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Placeholder */
+.reader-text-view.has-placeholder::before {
+    content: attr(data-placeholder);
+    color: #9ca3af;
+    pointer-events: none;
+    position: absolute;
+    top: var(--rtv-padding);
+    left: var(--rtv-padding);
+    right: var(--rtv-padding);
+}
+
+/* Paragraphen und Textformatierung */
+.reader-text-view p {
+    margin: 0 0 1.5em 0;
+}
+
+.reader-text-view strong {
+    font-weight: 700;
+}
+
+/* Aufzählungslisten */
+.reader-text-view ul {
+    margin: 0 0 1em 0;
+    padding-left: 1.5em;
+}
+
+.reader-text-view li {
+    margin-bottom: 0.5em;
+}
+
+/* === Modus-Anzeige === */
+.reader-text-view-container.edit-mode .reader-text-view {
+    cursor: text;
+}
+
+.reader-text-view-container.reader-mode .reader-text-view {
+    cursor: default;
+}
+
+/* Visuelle Unterscheidung der Modi */
+.reader-text-view-container.edit-mode {
+    border: 2px solid transparent;
+}
+
+.reader-text-view-container.reader-mode {
+    border: 2px solid var(--rtv-overlay-border-color);
+}
+
+/* === Wort-Overlay === */
+.reader-word-overlay {
+    position: absolute;
+    border: 2px solid var(--rtv-overlay-border-color);
+    border-radius: 5px;
+    background-color: var(--rtv-overlay-bg-color);
+    pointer-events: none;
+    transition: all 0.15s ease-out;
+    z-index: 10;
+}
+
+/* Overlay für Worterklärungen */
+.reader-word-overlay.explanation {
+    border-color: var(--rtv-explanation-border);
+    background-color: var(--rtv-explanation-bg);
+}
+
+/* === Erklärungs-Popup === */
+.reader-explanation-popup {
+    position: absolute;
+    max-width: 80%;
+    padding: 15px 20px;
+    background-color: rgba(255, 255, 255, 0.98);
+    border-radius: 12px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
+    font-size: 18px;
+    line-height: 1.5;
+    z-index: 100;
+    animation: popup-appear 0.2s ease-out;
+}
+
+@media (prefers-color-scheme: dark) {
+    .reader-explanation-popup {
+        background-color: rgba(40, 40, 40, 0.98);
+        color: #e5e5e5;
+    }
+}
+
+@keyframes popup-appear {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.reader-explanation-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    font-size: 20px;
+    color: #9ca3af;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.15s ease;
+}
+
+.reader-explanation-close:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: #4b5563;
+}
+
+/* === Erklärungs-Popup: Bild/Emoji === */
+.reader-explanation-body {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding-right: 20px; /* Platz für den Close-Button */
+}
+
+.reader-explanation-content {
+    flex: 1 1 auto;
+}
+
+.reader-explanation-visual {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.reader-explanation-image {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+}
+
+.reader-explanation-emoji {
+    font-size: 48px;
+    line-height: 1;
+}
+
+.reader-explanation-attribution {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+    text-align: center;
+}
+
+.reader-explanation-translation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.reader-explanation-translation-label {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.reader-explanation-translation-text {
+    font-weight: 600;
+    color: #1e3a8a;
+}
+
+.reader-explanation-translation-speak {
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
+.reader-explanation-translation-speak:hover {
+    background: #eff6ff;
+}
+
+/* === Silbentrennung Farben === */
+.reader-text-view .syllable-1 {
+    color: var(--rtv-syllable-color-1);
+}
+
+.reader-text-view .syllable-2 {
+    color: var(--rtv-syllable-color-2);
+}
+
+/* === Loading Indicator === */
+.reader-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #2c6693;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* === Responsive Anpassungen === */
+@media screen and (max-width: 768px) {
+    :root {
+        --rtv-font-size: 20px;
+        --rtv-padding: 20px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    :root {
+        --rtv-font-size: 18px;
+        --rtv-padding: 15px;
+    }
+}
+
+/* === Print Styles === */
+@media print {
+    .reader-text-view-container {
+        box-shadow: none;
+    }
+
+    .reader-word-overlay,
+    .reader-explanation-popup,
+    .reader-loading {
+        display: none !important;
+    }
+
+    .reader-text-view {
+        overflow: visible;
+        height: auto;
+    }
+}
+
+/* === Floating Read Buttons === */
+.reader-floating-buttons {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-out;
+}
+
+.reader-text-view-container.reader-mode .reader-floating-buttons {
+    opacity: 0.5;
+    pointer-events: auto;
+}
+
+.reader-text-view-container.reader-mode .reader-floating-buttons:hover {
+    opacity: 1;
+}
+
+.reader-floating-buttons.scrolled {
+    position: fixed;
+    opacity: 0.4;
+}
+
+.reader-floating-buttons.scrolled:hover {
+    opacity: 1;
+}
+
+.reader-floating-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 12px;
+    background-color: rgba(44, 102, 147, 0.6);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 60px;
+}
+
+.reader-floating-btn:hover {
+    transform: scale(1.05);
+    background-color: rgba(44, 102, 147, 0.9);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.reader-floating-btn:active {
+    transform: scale(0.98);
+}
+
+.reader-floating-btn img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+}
+
+.reader-floating-btn span {
+    font-size: 10px;
+    font-family: var(--rtv-font-family);
+    color: white;
+    text-align: center;
+}
+
+.reader-floating-btn.stop-btn {
+    display: none;
+}
+
+.reader-floating-btn.stop-btn.visible {
+    display: flex;
+}
+
+.reader-floating-btn.read-btn.reading {
+    background-color: rgba(44, 102, 147, 0.95);
+}
+
+.reader-floating-btn.read-btn.reading span {
+    color: white;
+}
+
+@media (prefers-color-scheme: dark) {
+    .reader-floating-btn {
+        background-color: rgba(44, 102, 147, 0.6);
+    }
+
+    .reader-floating-btn:hover {
+        background-color: rgba(44, 102, 147, 0.9);
+    }
+
+    .reader-floating-btn.read-btn.reading {
+        background-color: rgba(44, 102, 147, 0.95);
+    }
+}
+
+/* === Accessibility === */
+@media (prefers-reduced-motion: reduce) {
+    .reader-word-overlay,
+    .reader-explanation-popup {
+        transition: none;
+        animation: none;
+    }
+
+    .reader-text-view {
+        scroll-behavior: auto;
+    }
+
+    .reader-floating-btn {
+        transition: none;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    :root {
+        --rtv-overlay-border-color: #000;
+        --rtv-highlight-color: #ffff00;
+    }
+
+    .reader-word-overlay {
+        border-width: 3px;
+    }
+}
+
+/* === Toolbar (optional) === */
+.reader-toolbar {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background-color: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+    flex-wrap: wrap;
+}
+
+@media (prefers-color-scheme: dark) {
+    .reader-toolbar {
+        background-color: #2d2d2d;
+        border-color: #404040;
+    }
+}
+
+.reader-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background-color: #2c6693;
+    color: white;
+    font-family: var(--rtv-font-family);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.reader-toolbar button:hover {
+    background-color: #1e4b6e;
+}
+
+.reader-toolbar button:active {
+    background-color: #1d4ed8;
+}
+
+.reader-toolbar button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.reader-toolbar button.secondary {
+    background-color: #6b7280;
+}
+
+.reader-toolbar button.secondary:hover {
+    background-color: #4b5563;
+}
+
+.reader-toolbar button.danger {
+    background-color: #ef4444;
+}
+
+.reader-toolbar button.danger:hover {
+    background-color: #dc2626;
+}
+
+/* Font Size Controls */
+.reader-toolbar .font-size-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.reader-toolbar .font-size-control input[type="range"] {
+    width: 100px;
+}
+
+.reader-toolbar .font-size-control span {
+    min-width: 40px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--rtv-text-color);
+}
+
+/* === Inline Grafik-Bloecke (Tabellen, Diagramme, Bildbeschreibungen) === */
+.reader-graphic-block {
+    margin: 20px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .reader-graphic-block {
+        background: #1e293b;
+        border-color: #334155;
+    }
+}
+
+.reader-graphic-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+}
+
+.reader-chart-block .reader-graphic-header {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.reader-description-block .reader-graphic-header {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.reader-graphic-icon {
+    font-size: 18px;
+}
+
+.reader-graphic-content {
+    padding: 15px;
+    margin: 0;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    color: #1e293b;
+    background: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+    .reader-graphic-content {
+        color: #e2e8f0;
+    }
+}
+
+.reader-description-content {
+    font-family: var(--rtv-font-family);
+    white-space: normal;
+    font-size: 16px;
+}
+
+/* Responsive Anpassung fuer kleine Bildschirme */
+@media screen and (max-width: 480px) {
+    .reader-graphic-content {
+        font-size: 12px;
+        padding: 12px;
+    }
+
+    .reader-graphic-header {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+}
+
+/* === ASCII-Tabellen im Lesemodus: kindgerechte HTML-Tabelle statt roher ASCII ===
+   Rendering: reader-text-view.js (_refreshGraphicTablesForMode). Im Bearbeiten-Modus
+   bleibt die Tabelle als ASCII in <pre class="reader-graphic-content"> (siehe oben).
+   Bewusst KEIN prefers-color-scheme:dark-Block — App-Basis ist immer hell. */
+.reader-graphic-content.reader-ascii-table-wrapper {
+    padding: 0;
+    margin: 0;
+    font-family: var(--rtv-font-family);
+    font-size: inherit;
+    white-space: normal;
+    overflow-x: auto;
+    /* explizit hell (nicht transparent): der Karten-Block hat einen Alt-Dark-Mode-Override,
+       der sonst bei OS-Dark durch die transparenten Zebra-Reihen durchscheint */
+    background: #ffffff;
+}
+
+.reader-ascii-table {
+    min-width: 100%;
+    border-collapse: collapse;
+    font-size: inherit;
+    color: #1e293b;
+}
+
+.reader-ascii-table th,
+.reader-ascii-table td {
+    padding: 14px 16px;
+    text-align: left;
+    white-space: normal;
+    hyphens: none;
+    -webkit-hyphens: none;
+    -ms-hyphens: none;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.reader-ascii-table thead th {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #ffffff;
+    font-weight: 600;
+    border-bottom: none;
+}
+
+.reader-ascii-table tbody tr:nth-child(even) {
+    background: #eff6ff;
+}
+
+.reader-ascii-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+@media screen and (max-width: 480px) {
+    .reader-ascii-table th,
+    .reader-ascii-table td {
+        padding: 10px 12px;
+    }
+}
+
+/* === Wortbilder (ARASAAC) === */
+.reader-text-view.word-image-mode {
+    padding-top: 40px;
+}
+
+.reader-text-view .word {
+    position: relative;
+    display: inline;
+}
+
+/* Wort-Wrapper im Bildmodus: inline-block mit Mindesthoehe fuer Bilder */
+.reader-text-view.word-image-mode .word {
+    display: inline-block;
+    vertical-align: bottom;
+    margin-top: 2.5em;
+}
+
+.reader-text-view .word-image {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 2em;
+    width: auto;
+    max-width: 3.5em;
+    object-fit: contain;
+    pointer-events: none;
+    margin-bottom: 2px;
+}
+
+/* Bilder im Bearbeiten-Modus ausblenden */
+.edit-mode .reader-text-view .word-image {
+    display: none;
+}
+
+.edit-mode .reader-text-view.word-image-mode {
+    padding-top: 0;
+}
+
+.edit-mode .reader-text-view.word-image-mode .word {
+    display: inline;
+    margin-top: 0;
+}
+
+.reader-text-view .word-image.loading {
+    opacity: 0.3;
+}
+
+.reader-text-view .word-image.error {
+    display: none;
+}

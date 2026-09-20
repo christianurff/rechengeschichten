@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Visualizer-Harness</title>
+<link rel="stylesheet" href="../quantity-visualizer.css">
+<style>
+  body { font-family: -apple-system, sans-serif; padding: 20px; max-width: 760px; }
+  #c { border: 1px solid #ddd; border-radius: 10px; padding: 8px; }
+  .row { margin: 12px 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  button { font: inherit; padding: 6px 10px; border-radius: 7px; border: 1px solid #c4ccd6; background: #fff; cursor: pointer; }
+  h3 { margin: 4px 0; }
+</style>
+</head>
+<body>
+  <h3>Visualizer-Harness</h3>
+  <div id="c"></div>
+  <div class="row">
+    <button onclick="demo('mehrschritt')">12 − 3, ÷ 3 (mehrschrittig)</button>
+    <button onclick="demo('add')">8 + 6</button>
+    <button onclick="demo('multG')">3 × 4 (Gruppen)</button>
+    <button onclick="demo('multF')">4 × 3 (Feld)</button>
+    <button onclick="demo('divA')">12 ÷ 3 (aufteilen)</button>
+    <button onclick="demo('buendel')">34 (bündeln)</button>
+  </div>
+  <div class="row">
+    <button onclick="QuantityVisualizer.setRepresentation('plaettchen')">Plättchen</button>
+    <button onclick="QuantityVisualizer.setRepresentation('symbol')">Symbol</button>
+  </div>
+  <script src="../quantity-visualizer.js"></script>
+  <script>
+    const mount = () => QuantityVisualizer.mount(document.getElementById('c'));
+    const SCRIPTS = {
+      mehrschritt: [
+        { aktion: 'vorbereiten', objekte: [{ name: 'keks', suchbegriff: 'keks' }], darstellung: 'plaettchen' },
+        { aktion: 'hinzufuegen', objekt: 'keks', anzahl: 12 },
+        { aktion: 'wegnehmen', objekt: 'keks', anzahl: 3 },
+        { aktion: 'teilen', grundvorstellung: 'verteilen', anzahlGruppen: 3 }
+      ],
+      add: [
+        { aktion: 'vorbereiten', objekte: [{ name: 'murmel', suchbegriff: 'murmel' }], darstellung: 'plaettchen' },
+        { aktion: 'hinzufuegen', objekt: 'murmel', anzahl: 8 },
+        { aktion: 'hinzufuegen', objekt: 'murmel', anzahl: 6 }
+      ],
+      multG: [
+        { aktion: 'vorbereiten', objekte: [{ name: 'murmel', suchbegriff: 'murmel' }], darstellung: 'plaettchen' },
+        { aktion: 'gruppen_anlegen', gruppen: 3, proGruppe: 4, gruppenname: 'Kind' },
+        { aktion: 'malnehmen', gruppen: 3, proGruppe: 4, grundvorstellung: 'gruppen' },
+        { aktion: 'zusammenfassen' }
+      ],
+      multF: [
+        { aktion: 'vorbereiten', objekte: [{ name: 'punkt', suchbegriff: 'punkt' }], darstellung: 'plaettchen' },
+        { aktion: 'malnehmen', gruppen: 4, proGruppe: 3, grundvorstellung: 'feld' }
+      ],
+      divA: [
+        { aktion: 'vorbereiten', objekte: [{ name: 'keks', suchbegriff: 'keks' }], darstellung: 'plaettchen' },
+        { aktion: 'hinzufuegen', objekt: 'keks', anzahl: 12 },
+        { aktion: 'teilen', grundvorstellung: 'aufteilen', proGruppe: 3 }
+      ],
+      buendel: [
+        { aktion: 'vorbereiten', objekte: [{ name: 'stift', suchbegriff: 'stift' }], darstellung: 'plaettchen' },
+        { aktion: 'hinzufuegen', objekt: 'stift', anzahl: 34 },
+        { aktion: 'buendeln', buendelgroesse: 10 }
+      ]
+    };
+    async function demo(key) {
+      mount();
+      await QuantityVisualizer.playAll(SCRIPTS[key]);
+    }
+    mount();
+    demo('mehrschritt');
+  </script>
+</body>
+</html>

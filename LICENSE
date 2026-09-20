@@ -1,0 +1,40 @@
+Rechengeschichten
+Copyright (c) Christian Urff (https://urff.app)
+
+Dieses Werk ist lizenziert unter
+Creative Commons Namensnennung – Nicht kommerziell 4.0 International
+(CC BY-NC 4.0).
+
+Kurzfassung
+-----------
+Du darfst das Material in jedwedem Format oder Medium vervielfältigen und
+weiterverbreiten sowie es remixen, verändern und darauf aufbauen – unter
+folgenden Bedingungen:
+
+  Namensnennung — Du musst angemessene Urheber- und Rechteangaben machen,
+  einen Link zur Lizenz beifügen und angeben, ob Änderungen vorgenommen
+  wurden. Empfohlene Angabe:
+
+      Basiert auf „Rechengeschichten" von Christian Urff (urff.app),
+      lizenziert unter CC BY-NC 4.0.
+
+  Nicht kommerziell — Du darfst das Material nicht für kommerzielle Zwecke
+  nutzen.
+
+Der vollständige Lizenztext (Legal Code) steht unter
+https://creativecommons.org/licenses/by-nc/4.0/legalcode.de
+Eine allgemeinverständliche Zusammenfassung unter
+https://creativecommons.org/licenses/by-nc/4.0/deed.de
+
+Die Lizenz gilt für den Quellcode und die Symbole dieses Repositorys.
+
+Mitgelieferte Fremdbestandteile stehen unter ihren eigenen Lizenzen:
+  - vendor/jspdf.umd.min.js — jsPDF, MIT
+  - vendor/lz-string.min.js — lz-string, MIT
+  - vendor/qrcode.min.js — qrcode.js, MIT
+  - hyphenopoly/ — Hyphenopoly 5.3.0, © Mathias Nater, MIT
+  - hyph-de-1996.pat.txt — TeX-Trennmuster für Deutsch, MIT
+
+Zur Laufzeit geladene Inhalte (nicht Teil dieses Repositorys):
+  - ARASAAC-Piktogramme © Sergio Palao für ARASAAC (arasaac.org),
+    Regierung von Aragón, CC BY-NC-SA
