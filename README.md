@@ -2,8 +2,8 @@
 
 Eine Web-App, die Kinder der Klassen 1–6 beim **Verstehen und Lösen mathematischer
 Sachaufgaben** begleitet. Die Aufgabe wird eingegeben oder fotografiert, danach
-stehen verschiedene, didaktisch begründete Wege zur Verfügung – angelehnt an die
-Sachrechen-Konzepte von [PIKAS](https://pikas.dzlm.de/unterricht/groessen-und-messen/sachsituationen):
+stehen verschiedene, didaktisch begründete Wege zur Verfügung – angelehnt an
+Sachrechen-Konzepte:
 
 - **Text verstehen** – die Aufgabe gemeinsam erschließen, Wichtiges markieren
 - **Fragen stellen** – passende Fragen zur Situation finden
@@ -54,12 +54,9 @@ der App unter **Einstellungen → API-Zugang** ein; er wird nur lokal im Browser
 > das Gerät hat. Für den Einsatz in einer Klasse oder öffentlich ist deshalb der
 > Proxy-Weg der richtige: ein kleiner serverseitiger Dienst (z. B. ein Cloudflare
 > Worker), der den Schlüssel hält und die Anfragen weiterreicht. Die App schickt
-> dann nur noch an deine eigene URL. Ein solcher Proxy ist schnell gebaut – er muss
-> lediglich `POST /chat/completions` im OpenAI-Format entgegennehmen, den
-> `Authorization`-Header serverseitig setzen und CORS erlauben.
+> dann nur noch an deine eigene URL.
 
-Welche Modelle verwendet werden, steht am Anfang von `api.js`. Alle KI-Aufrufe
-laufen durch **eine** Funktion – `kiChatCompletion()` –, dort lässt sich ein
+Welche Modelle verwendet werden, steht am Anfang von `api.js`. Diese lassen sich leicht verändern und an neuere Modelle anpassen. Alle KI-Aufrufe laufen durch **eine** Funktion – `kiChatCompletion()` –, dort lässt sich ein
 weiterer Anbieter mit wenigen Zeilen ergänzen.
 
 ## Aufbau
@@ -101,21 +98,6 @@ Endpunkt und brauchen deshalb einen eigenen Zugang:
 RG_PROXY_URL=https://mein-proxy.example.dev node test/ai-plan-quality-test.js
 ```
 
-## Unterschiede zur Originalversion
-
-Diese Veröffentlichung enthält den Kern der App. Nicht enthalten sind:
-
-- **Die Schriftart.** Das Original nutzt die Fibelschrift *ABeZeh EDU*, die
-  kommerziell lizenziert ist. Die App fällt auf eine Systemschrift zurück. Wie du
-  eine eigene Schulschrift einbindest, steht als Kommentar oben in `styles.css`.
-  Frei lizenzierte Fibelschriften sind z. B. *ABeeZee*, *Andika* oder die
-  [Grundschrift](https://github.com/christianurff/grundschrift).
-- **Das Forschungsmodul.** Die Originalversion erhebt nach gesonderter Einwilligung
-  pseudonymisierte Nutzungsdaten für ein Forschungsprojekt. Diese Version erhebt
-  **keine Daten** und sendet nichts außer den KI-Anfragen an den von dir
-  eingetragenen Anbieter.
-- **Die iOS-App** und die Proxy-Dienste des Originals.
-
 ## Als Betreiber beachten
 
 Wer die App öffentlich bereitstellt, ist selbst für **Impressum und
@@ -131,8 +113,7 @@ Namensnennung, nicht kommerziell. Siehe [LICENSE](LICENSE).
 > Basiert auf „Rechengeschichten" von Christian Urff ([urff.app](https://urff.app)),
 > lizenziert unter CC BY-NC 4.0.
 
-Weiterentwickeln, anpassen und in der eigenen Schule einsetzen ist ausdrücklich
-erwünscht. Die Fußzeile der App nennt die Ursprungsversion – bitte lass diesen
-Hinweis stehen.
+Weiterentwickeln, anpassen und in der eigenen Schule einsetzen (beispielsweise auch mit lokaler KI) ist ausdrücklich
+erwünscht. Die Fußzeile der App nennt die Ursprungsversion – bitte lass diesen Hinweis stehen.
 
 Mitgelieferte Bibliotheken stehen unter ihren eigenen (MIT-)Lizenzen, siehe LICENSE.
